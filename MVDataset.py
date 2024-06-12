@@ -1,6 +1,5 @@
 import os.path
 
-import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -42,4 +41,4 @@ class MVDataset(Dataset):
         if self.transforms is not None:
             image, target = self.transforms(image, target)
 
-        return image, [target]
+        return image.cuda(), [target]

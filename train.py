@@ -52,9 +52,10 @@ else:
 
 print("last_epoch = {} , last_batch_data_index = {}".format(last_epoch, last_batch_data_index))
 
-epoch_term = 10
-batch_term = 5
+epoch_term = 1
+batch_term = 100
 
+model.to(device)
 model.train()
 start = time.time()
 
