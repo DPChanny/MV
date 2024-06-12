@@ -4,7 +4,7 @@ raw_data/
 *.pth
 
 data.7z
-raw_data.zip
+raw_data.7z
 
 # Created by https://www.toptal.com/developers/gitignore/api/pycharm,venv,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=pycharm,venv,python
