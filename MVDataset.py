@@ -44,5 +44,6 @@ class MVDataset(Dataset):
                   'image_id': data_index}
 
         image, target = self.transforms(image, target)
+        image = image.to(self.device)
 
-        return image, [target]
+        return image, target

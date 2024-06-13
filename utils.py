@@ -47,3 +47,13 @@ def draw_boxes(image, boxes, visible_latex_chars):
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.8, visible_latex_char_color_map[visible_latex_char], 2)
     return image
+
+
+def collate_fn(batch):
+    image_list = []
+    target_list = []
+    for image, target in batch:
+        image_list.append(image)
+        target_list.append(target)
+
+    return image_list, target_list

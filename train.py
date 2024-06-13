@@ -8,10 +8,9 @@ from torchvision.models import ResNet50_Weights
 from torchvision.models.detection.faster_rcnn import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
 
 from MVDataset import MVDataset
-from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH
+from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH, collate_fn
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print(device)
 
 model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
                                 trainable_backbone_layers=5,
@@ -21,7 +20,7 @@ num_classes = len(get_visible_latex_char_map()) + 1
 in_features = model.roi_heads.box_predictor.cls_score.in_features
 model.roi_heads.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(in_features, num_classes)
 
-print(model)
+model.to(device)
 
 EPOCHS = 10
 LR = 1e-5
@@ -44,8 +43,9 @@ else:
     start_batch = 0
 
 EPOCH_TERM = 1
-BATCH_DATA_TERM = 5
-BATCH_SIZE = 100
+BATCH_SIZE = 10000
+MINI_BATCH_SIZE = 4
+MINI_BATCH_VERBOSE_TERM = 10
 
 model.to(device)
 model.train()
@@ -60,41 +60,49 @@ for epoch in range(start_epoch, EPOCHS):
         start = time.time()
 
         dataset = MVDataset(DATA_PATH, batch_json_list, device, True)
-        dataloader = DataLoader(dataset, shuffle=True)
+        dataloader = DataLoader(dataset, shuffle=True, batch_size=4, collate_fn=collate_fn)
 
-        for batch_data_index, (image, targets) in enumerate(dataloader):
+        loss_history_list = []
+        for mini_batch_data_index, (images, targets) in enumerate(dataloader):
             optimizer.zero_grad()
 
-            targets[0]['boxes'].squeeze_(0)
-            targets[0]['labels'].squeeze_(0)
+            loss = model(images, targets)
+            total_loss = torch.sum(torch.stack([value for value in loss.values()]))
 
-            print(image)
-            print(targets[0]['boxes'])
+            loss_history = {key: value.item() for (key, value) in loss.items()}
+            loss_history['total_loss'] = total_loss.item()
+            loss_history_list.append(loss_history)
 
-            loss = model(image, targets)
-
-            loss_objectness = loss['loss_objectness']
-            loss_rpn_box_reg = loss['loss_rpn_box_reg']
-            loss_classifier = loss['loss_classifier']
-            loss_box_reg = loss['loss_box_reg']
-
-            rpn_total = loss_objectness + 10 * loss_rpn_box_reg
-            fast_rcnn_total = loss_classifier + 1 * loss_box_reg
-
-            total_loss = rpn_total + fast_rcnn_total
-
-            if not batch_data_index % BATCH_DATA_TERM:
+            if not mini_batch_data_index % MINI_BATCH_VERBOSE_TERM:
                 end = time.time()
+
+                loss_history_sum = {}
+                for loss_history in loss_history_list:
+                    for (key, value) in loss_history.items():
+                        if loss_history_sum.get(key) is None:
+                            loss_history_sum[key] = 0
+                        loss_history_sum[key] += value
+
+                loss_history_mean = {}
+                for (key, value) in loss_history_sum.items():
+                    if loss_history_mean.get(key) is None:
+                        loss_history_mean[key] = 0
+                    loss_history_mean[key] = value / MINI_BATCH_VERBOSE_TERM
+
+                loss_history_list.clear()
+
                 print(("EPOCH {}/{} | BATCH {}/{} | PROGRESS {:.2f}% "
-                       + "| TOTAL LOSS {:.5f}"
-                       + "| LOSS [objectness: {:.5f}, rpn_box_reg: {:.5f}, "
+                       + "| MEAN TOTAL LOSS {:.5f}"
+                       + "| MEAN LOSS [objectness: {:.5f}, rpn_box_reg: {:.5f}, "
                        + "classifier: {:.5f}, box_reg: {:.5f}] "
                        + "| TIME: {:.5f}").format(epoch, EPOCHS,
                                                   batch, len(batch_json_lists),
-                                                  batch_data_index / len(dataset) * 100,
-                                                  total_loss,
-                                                  loss['loss_objectness'], loss['loss_rpn_box_reg'],
-                                                  loss['loss_classifier'], loss['loss_box_reg'],
+                                                  mini_batch_data_index / len(dataloader) * 100,
+                                                  loss_history_mean['total_loss'],
+                                                  loss_history_mean['loss_objectness'],
+                                                  loss_history_mean['loss_rpn_box_reg'],
+                                                  loss_history_mean['loss_classifier'],
+                                                  loss_history_mean['loss_box_reg'],
                                                   end - start))
 
                 start = time.time()
