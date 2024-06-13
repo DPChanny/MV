@@ -3,16 +3,21 @@ import os.path
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+import torchvision.transforms.v2 as tt
 
 from utils import json_parser, get_visible_latex_char_map, JSON_PATH, JPG_PATH
 
 
 class MVDataset(Dataset):
-    def __init__(self, data_path: str, device, transforms):
+    def __init__(self, data_path, json_list, device, is_train):
         self.data_path = data_path
-        self.json_list = [file for file in os.listdir(os.path.join(data_path, JSON_PATH)) if file.endswith(".json")]
+        self.json_list = json_list
         self.device = device
-        self.transforms = transforms
+        transforms = [tt.PILToTensor(),
+                      tt.ToDtype(torch.float32, scale=True)]
+        if is_train:
+            transforms.append(tt.RandomHorizontalFlip(0.5))
+        self.transforms = tt.Compose(transforms)
 
     def __len__(self):
         return len(self.json_list)
@@ -38,7 +43,6 @@ class MVDataset(Dataset):
                   'area': area,
                   'image_id': data_index}
 
-        if self.transforms is not None:
-            image, target = self.transforms(image, target)
+        image, target = self.transforms(image, target)
 
-        return image.cuda(), [target]
+        return image, [target]

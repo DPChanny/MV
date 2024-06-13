@@ -2,11 +2,11 @@ import json
 
 import cv2
 
-RAW_DATA_PATH = ".\\raw_data"
-DATA_PATH = ".\\data"
+RAW_DATA_PATH: str = ".\\raw_data"
+DATA_PATH: str = ".\\data"
 
-JSON_PATH = "jsons"
-JPG_PATH = "jpgs"
+JSON_PATH: str = "jsons"
+JPG_PATH: str = "jpgs"
 
 
 def json_parser(json_path):
