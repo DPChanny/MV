@@ -10,13 +10,14 @@ from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH, get_model, v
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
+
 model = get_model(device)
 model.load_state_dict(torch.load(".\\check_point.pth", map_location=device)['state_dict'])
 model.eval()
 
 json_list = random.sample([file
                            for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))
-                           if file.endswith(".json")][:3000], 5)
+                           if file.endswith(".json")][:2000], 10)
 
 dataset = MVDataset(DATA_PATH, json_list, device, False)
 dataloader = DataLoader(dataset, shuffle=False)
@@ -29,6 +30,8 @@ image_list = []
 
 images: Tensor
 for test_data_index, (images, targets) in enumerate(dataloader):
+    print("PROGRESS {:.2f}%".format(test_data_index / len(dataloader) * 100))
+
     tensor_prediction_list = model(images)
 
     for prediction_index, prediction in enumerate(tensor_prediction_list):

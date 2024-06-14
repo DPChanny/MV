@@ -44,12 +44,12 @@ def get_image(image, boxes, visible_latex_chars, scores, iou_threshold):
         cv2.rectangle(overlay,
                       (int(boxes[index][0]), int(boxes[index][1])),
                       (int(boxes[index][2]), int(boxes[index][3])),
-                      color=(0, 255, 255, 255),
+                      color=(0, 255, 0, 255),
                       thickness=1)
         cv2.putText(overlay, visible_latex_char + " ({:.2f})".format(scores[index]),
                     (int(boxes[index][0]), int(boxes[index][1]) - 5),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    1, (0, 255, 255, 255), 1)
+                    1, (0, 255, 0, 255), 1)
         alpha = (scores[index] - iou_threshold[0]) / (iou_threshold[1] - iou_threshold[0])
         image = cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0)
     return image
