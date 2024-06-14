@@ -32,9 +32,9 @@ else:
     start_batch = 0
 
 EPOCH_TERM = 1
-BATCH_SIZE = 100
-MINI_BATCH_SIZE = 4
-MINI_BATCH_VERBOSE_TERM = 5
+BATCH_SIZE = 10000
+MINI_BATCH_SIZE = 2
+MINI_BATCH_VERBOSE_TERM = 50
 
 model.train()
 
@@ -48,7 +48,7 @@ for epoch in range(start_epoch, EPOCHS):
         start = time.time()
 
         dataset = MVDataset(DATA_PATH, batch_json_list, device, True)
-        dataloader = DataLoader(dataset, shuffle=True, batch_size=4, collate_fn=collate_fn)
+        dataloader = DataLoader(dataset, shuffle=True, batch_size=MINI_BATCH_SIZE, collate_fn=collate_fn)
 
         loss_history_list = []
         for mini_batch_data_index, (images, targets) in enumerate(dataloader):
