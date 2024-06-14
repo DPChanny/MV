@@ -2,25 +2,14 @@ import os.path
 import time
 
 import torch
-import torchvision
 from torch.utils.data import DataLoader
-from torchvision.models import ResNet50_Weights
-from torchvision.models.detection.faster_rcnn import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
 
 from MVDataset import MVDataset
-from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH, collate_fn
+from utils import DATA_PATH, JSON_PATH, collate_fn, get_model
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
-                                trainable_backbone_layers=5,
-                                weights_backbone=ResNet50_Weights.DEFAULT)
-
-num_classes = len(get_visible_latex_char_map()) + 1
-in_features = model.roi_heads.box_predictor.cls_score.in_features
-model.roi_heads.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(in_features, num_classes)
-
-model.to(device)
+model = get_model(device)
 
 EPOCHS = 10
 LR = 1e-5
@@ -30,7 +19,7 @@ optimizer = torch.optim.SGD(params=model.parameters(), lr=LR, momentum=0.95, wei
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS, eta_min=ETA_MIN)
 
 if os.path.exists(".\\check_point.pth"):
-    check_point = torch.load(".\\check_point.pth")
+    check_point = torch.load(".\\check_point.pth", map_location=device)
     start_epoch = check_point['epoch']
     start_batch = check_point['batch'] + 1
     model.load_state_dict(check_point['state_dict'])
@@ -43,11 +32,10 @@ else:
     start_batch = 0
 
 EPOCH_TERM = 1
-BATCH_SIZE = 10000
+BATCH_SIZE = 100
 MINI_BATCH_SIZE = 4
-MINI_BATCH_VERBOSE_TERM = 10
+MINI_BATCH_VERBOSE_TERM = 5
 
-model.to(device)
 model.train()
 
 json_list = [file for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH)) if file.endswith(".json")]

@@ -2,51 +2,50 @@ import os
 import random
 
 import torch
-import torchvision
+from torch import Tensor
 from torch.utils.data import DataLoader
-from torchvision.models import ResNet50_Weights
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
 
 from MVDataset import MVDataset
-from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH
+from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH, get_model, visualize
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print(device)
 
-model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
-                                trainable_backbone_layers=5,
-                                weights_backbone=ResNet50_Weights.DEFAULT)
-
-num_classes = len(get_visible_latex_char_map()) + 1
-in_features = model.roi_heads.box_predictor.cls_score.in_features
-model.roi_heads.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(in_features, num_classes)
-
-model.load_state_dict(torch.load(".\\epoch1.pth", map_location=device))
-
+model = get_model(device)
+model.load_state_dict(torch.load(".\\check_point.pth", map_location=device)['state_dict'])
 model.eval()
 
 json_list = random.sample([file
                            for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))
-                           if file.endswith(".json")], 10)
-
+                           if file.endswith(".json")][:3000], 5)
 
 dataset = MVDataset(DATA_PATH, json_list, device, False)
 dataloader = DataLoader(dataset, shuffle=False)
 
-for test_data_index, (image, targets) in enumerate(dataloader):
-    targets[0]['boxes'].squeeze_(0)
-    targets[0]['labels'].squeeze_(0)
+visible_latex_char_map = get_visible_latex_char_map()
+visible_latex_char_map = {v: k for k, v in visible_latex_char_map.items()}
 
-    predictions = model(image)
+prediction_list = []
+image_list = []
 
-    boxes = predictions[0]['boxes']
-    labels = predictions[0]['labels']
-    visible_latex_char_map = get_visible_latex_char_map()
-    visible_latex_char_map = {v: k for k, v in visible_latex_char_map.items()}
-    visible_latex_chars = [visible_latex_char_map[label] for label in labels.tolist()]
-    scores = predictions[0]['scores']
-    print(image.shape)
-    print(boxes)
-    print(labels)
-    print(visible_latex_chars)
-    print(scores)
+images: Tensor
+for test_data_index, (images, targets) in enumerate(dataloader):
+    tensor_prediction_list = model(images)
+
+    for prediction_index, prediction in enumerate(tensor_prediction_list):
+        boxes = prediction['boxes'].detach().numpy()
+        labels = prediction['labels'].detach().numpy()
+        scores = prediction['scores'].detach().numpy()
+
+        visible_latex_chars = [visible_latex_char_map[label]
+                               for label_index, label in enumerate(labels)]
+
+        prediction_list.append({
+            'boxes': boxes,
+            'labels': labels,
+            'scores': scores,
+            'visible_latex_chars': visible_latex_chars
+        })
+
+        image_list.append(images[prediction_index])
+
+visualize(image_list, prediction_list)
