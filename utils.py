@@ -32,7 +32,7 @@ def get_visible_latex_char_map():
 
 
 def get_image(image, boxes, visible_latex_chars, scores, iou_threshold):
-    cv2.putText(image, "{} * {} ({:.2f} ~ {:.2f})".format(image.shape[0], image.shape[1],
+    cv2.putText(image, "{} * {} ({:.3f} ~ {:.3f})".format(image.shape[0], image.shape[1],
                                                           iou_threshold[0], iou_threshold[1]),
                 (0, 25),
                 cv2.FONT_HERSHEY_SIMPLEX,
@@ -46,11 +46,12 @@ def get_image(image, boxes, visible_latex_chars, scores, iou_threshold):
                       (int(boxes[index][2]), int(boxes[index][3])),
                       color=(0, 255, 0, 255),
                       thickness=1)
-        cv2.putText(overlay, visible_latex_char + " ({:.2f})".format(scores[index]),
+        cv2.putText(overlay, visible_latex_char + " ({:.3f})".format(scores[index]),
                     (int(boxes[index][0]), int(boxes[index][1]) - 5),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    1, (0, 255, 0, 255), 1)
-        alpha = (scores[index] - iou_threshold[0]) / (iou_threshold[1] - iou_threshold[0])
+                    0.5, (0, 255, 0, 255), 1)
+        # alpha = (scores[index] - iou_threshold[0]) / (iou_threshold[1] - iou_threshold[0])
+        alpha = 1
         image = cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0)
     return image
 
@@ -59,6 +60,7 @@ def visualize(image_list, prediction_list):
     cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 
     iou_threshold = [0.0, 1.0]
+    iou_threshold_sensitivity = 0.025
     image_index = 0
 
     while True:
@@ -73,17 +75,17 @@ def visualize(image_list, prediction_list):
 
         if key == ord('Q') or key == ord('q'):
             break
-        if key == ord('['):
-            iou_threshold[0] = max(0.0, iou_threshold[0] - 0.05)
-        if key == ord(']'):
-            iou_threshold[0] = min(iou_threshold[1], iou_threshold[0] + 0.05)
-        if key == ord('{'):
-            iou_threshold[1] = max(iou_threshold[0], iou_threshold[1] - 0.05)
-        if key == ord('}'):
-            iou_threshold[1] = min(1.0, iou_threshold[1] + 0.05)
-        if key == ord(',') or key == ord('<'):
+        elif key == ord('['):
+            iou_threshold[0] = max(0.0, iou_threshold[0] - iou_threshold_sensitivity)
+        elif key == ord(']'):
+            iou_threshold[0] = min(iou_threshold[1], iou_threshold[0] + iou_threshold_sensitivity)
+        elif key == ord('{'):
+            iou_threshold[1] = max(iou_threshold[0], iou_threshold[1] - iou_threshold_sensitivity)
+        elif key == ord('}'):
+            iou_threshold[1] = min(1.0, iou_threshold[1] + iou_threshold_sensitivity)
+        elif key == ord(',') or key == ord('<'):
             image_index = max(image_index - 1, 0)
-        if key == ord('.') or key == ord('>'):
+        elif key == ord('.') or key == ord('>'):
             image_index = min(image_index + 1, len(image_list) - 1)
 
 
