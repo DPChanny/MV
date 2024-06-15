@@ -34,9 +34,9 @@ def get_image(image, prediction, target, iou_threshold):
     image = image.copy()
     cv2.putText(image, "{} x {} ({:.3f} ~ {:.3f})".format(image.shape[0], image.shape[1],
                                                           iou_threshold[0], iou_threshold[1]),
-                (0, 25),
+                (5, 20),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                1, (0, 0, 0, 255), 1)
+                0.5, (0, 0, 0, 255), 1)
 
     if target is not None:
         for index, visible_latex_char in enumerate(target['visible_latex_chars']):
