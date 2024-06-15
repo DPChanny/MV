@@ -18,6 +18,8 @@ model = get_model(device)
 model.load_state_dict(torch.load(".\\check_point.pth", map_location=device)['state_dict'])
 model.eval()
 
+print(model)
+
 test_data_count = 25
 
 json_list = random.sample([file

@@ -5,11 +5,16 @@ import torch
 from torch.utils.data import DataLoader
 
 from MVDataset import MVDataset
-from utils import DATA_PATH, JSON_PATH, collate_fn, get_model
+from utils import DATA_PATH, JSON_PATH, collate_fn, get_model, ModelVersion, CoordConv2dVersion, MODEL_PATH
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-model = get_model(device)
+MODEL_VERSION = ModelVersion.V2
+COORD_CONV_2D_VERSION = CoordConv2dVersion.V1
+
+model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
+
+print(model)
 
 EPOCHS = 10
 LR = 1e-5
@@ -18,8 +23,15 @@ ETA_MIN = LR * 1e-1
 optimizer = torch.optim.SGD(params=model.parameters(), lr=LR, momentum=0.95, weight_decay=1e-5 * 5)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS, eta_min=ETA_MIN)
 
-if os.path.exists(".\\check_point.pth"):
-    check_point = torch.load(".\\check_point.pth", map_location=device)
+if os.path.exists(os.path.join(MODEL_PATH,
+                               str(MODEL_VERSION),
+                               str(COORD_CONV_2D_VERSION),
+                               "check_point.pth")):
+    check_point = torch.load(os.path.join(MODEL_PATH,
+                                          str(MODEL_VERSION),
+                                          str(COORD_CONV_2D_VERSION),
+                                          "check_point.pth"),
+                             map_location=device)
     start_epoch = check_point['epoch']
     start_batch = check_point['batch'] + 1
     model.load_state_dict(check_point['state_dict'])
@@ -31,10 +43,10 @@ else:
     start_epoch = 0
     start_batch = 0
 
-EPOCH_TERM = 1
+VERBOSE_TERM = 50
 BATCH_SIZE = 10000
 MINI_BATCH_SIZE = 2
-MINI_BATCH_VERBOSE_TERM = 50
+TEMP_CHECK_POINT_TERM = 500
 
 model.train()
 
@@ -61,7 +73,7 @@ for epoch in range(start_epoch, EPOCHS):
             loss_history['total_loss'] = total_loss.item()
             loss_history_list.append(loss_history)
 
-            if not mini_batch_data_index % MINI_BATCH_VERBOSE_TERM:
+            if not mini_batch_data_index % VERBOSE_TERM:
                 end = time.time()
 
                 loss_history_sum = {}
@@ -75,25 +87,39 @@ for epoch in range(start_epoch, EPOCHS):
                 for (key, value) in loss_history_sum.items():
                     if loss_history_mean.get(key) is None:
                         loss_history_mean[key] = 0
-                    loss_history_mean[key] = value / MINI_BATCH_VERBOSE_TERM
+                    loss_history_mean[key] = value / VERBOSE_TERM
 
                 loss_history_list.clear()
 
-                print(("EPOCH {}/{} | BATCH {}/{} | PROGRESS {:.2f}% "
-                       + "| MEAN TOTAL LOSS {:.5f}"
+                print(("EPOCH {}/{} | BATCH {}/{} | PROGRESS {}/{} "
+                       + "| TOTAL MEAN LOSS {:.5f}"
                        + "| MEAN LOSS [objectness: {:.5f}, rpn_box_reg: {:.5f}, "
                        + "classifier: {:.5f}, box_reg: {:.5f}] "
-                       + "| TIME: {:.5f}").format(epoch, EPOCHS,
-                                                  batch, len(batch_json_lists),
-                                                  mini_batch_data_index / len(dataloader) * 100,
-                                                  loss_history_mean['total_loss'],
-                                                  loss_history_mean['loss_objectness'],
-                                                  loss_history_mean['loss_rpn_box_reg'],
-                                                  loss_history_mean['loss_classifier'],
-                                                  loss_history_mean['loss_box_reg'],
-                                                  end - start))
+                       + "| DURATION: {:.5f}s").format(epoch, EPOCHS,
+                                                       batch, len(batch_json_lists),
+                                                       mini_batch_data_index,
+                                                       len(dataloader),
+                                                       loss_history_mean['total_loss'],
+                                                       loss_history_mean['loss_objectness'],
+                                                       loss_history_mean['loss_rpn_box_reg'],
+                                                       loss_history_mean['loss_classifier'],
+                                                       loss_history_mean['loss_box_reg'],
+                                                       end - start))
 
                 start = time.time()
+
+            if not mini_batch_data_index % TEMP_CHECK_POINT_TERM:
+                torch.save({'epoch': epoch,
+                            'batch': batch,
+                            'state_dict': model.state_dict(),
+                            'optimizer': optimizer.state_dict(),
+                            'scheduler': scheduler.state_dict()
+                            },
+                           os.path.join(MODEL_PATH,
+                                        str(MODEL_VERSION),
+                                        str(COORD_CONV_2D_VERSION),
+                                        "tmp.pth".format(epoch, EPOCHS,
+                                                         batch, BATCH_SIZE)))
 
             total_loss.backward()
             optimizer.step()
@@ -103,8 +129,9 @@ for epoch in range(start_epoch, EPOCHS):
                     'state_dict': model.state_dict(),
                     'optimizer': optimizer.state_dict(),
                     'scheduler': scheduler.state_dict()
-                    }, "check_point.pth")
+                    }, os.path.join(MODEL_PATH,
+                                    str(MODEL_VERSION),
+                                    str(COORD_CONV_2D_VERSION),
+                                    "{}/{}_{}/{}.pth".format(epoch, EPOCHS,
+                                                             batch, BATCH_SIZE)))
         scheduler.step()
-
-    if not epoch % EPOCH_TERM:
-        torch.save(model.state_dict(), "epoch{}.pth".format(epoch))

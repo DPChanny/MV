@@ -1,5 +1,6 @@
 data/
 raw_data/
+temp/
 
 *.pth
 

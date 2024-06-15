@@ -1,15 +1,32 @@
 import json
+import os
+from enum import Enum
 
 import cv2
-import torchvision
-from torchvision.models import ResNet50_Weights
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
+from torch.nn import Conv2d
+from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn
 
-RAW_DATA_PATH: str = ".\\raw_data"
-DATA_PATH: str = ".\\data"
+from CoordConv2d import CoordConv2d
+
+PROJECT_PATH: str = "C:\\Users\\kyoun\\P\\Python\\MV"
+
+MODEL_PATH: str = os.path.join(PROJECT_PATH, "models")
+
+RAW_DATA_PATH: str = os.path.join(PROJECT_PATH, "raw_data")
+DATA_PATH: str = os.path.join(PROJECT_PATH, "data")
 
 JSON_PATH: str = "jsons"
 JPG_PATH: str = "jpgs"
+
+
+class ModelVersion(Enum):
+    V1 = fasterrcnn_resnet50_fpn()
+    V2 = fasterrcnn_resnet50_fpn_v2()
+
+
+class CoordConv2dVersion(Enum):
+    NONE = 0
+    V1 = 1
 
 
 def json_parser(json_path):
@@ -23,7 +40,7 @@ def json_parser(json_path):
 
 
 def get_visible_latex_char_map():
-    with open(".\\visible_latex_char_map.json", "r") as file:
+    with open(os.path.join(PROJECT_PATH, "visible_latex_char_map.json"), "r") as file:
         data = json.load(file)
 
     return data
@@ -110,15 +127,26 @@ def collate_fn(batch):
     return image_list, target_list
 
 
-def get_model(device):
-    model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
-                                    trainable_backbone_layers=5,
-                                    weights_backbone=ResNet50_Weights.DEFAULT)
-
+def get_model(model_version, coord_conv_2d_version, device):
+    model = model_version.value
     num_classes = len(get_visible_latex_char_map()) + 1
     in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(in_features, num_classes)
+    model.roi_heads.box_predictor = faster_rcnn.FastRCNNPredictor(in_features, num_classes)
+
+    if coord_conv_2d_version.value is not None:
+        model = set_coord_conv_2d(model, coord_conv_2d_version)
 
     model.to(device)
+
+    return model
+
+
+def set_coord_conv_2d(model, coord_conv_2d_version):
+    for name, child in model.named_children():
+        print(name)
+        model._modules[name] = set_coord_conv_2d(child, coord_conv_2d_version)
+
+    if isinstance(model, Conv2d):
+        model = CoordConv2d(model)
 
     return model
