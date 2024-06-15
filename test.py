@@ -1,12 +1,15 @@
 import os
 import random
 
+import cv2
+import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
+from torchvision.transforms.v2.functional import to_pil_image
 
 from MVDataset import MVDataset
-from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH, get_model, visualize
+from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH, get_model, visualize, collate_fn
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -15,18 +18,21 @@ model = get_model(device)
 model.load_state_dict(torch.load(".\\check_point.pth", map_location=device)['state_dict'])
 model.eval()
 
+test_data_count = 25
+
 json_list = random.sample([file
                            for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))
-                           if file.endswith(".json")][:2000], 10)
+                           if file.endswith(".json")], test_data_count)
 
 dataset = MVDataset(DATA_PATH, json_list, device, False)
-dataloader = DataLoader(dataset, shuffle=False)
+dataloader = DataLoader(dataset, shuffle=False, collate_fn=collate_fn)
 
 visible_latex_char_map = get_visible_latex_char_map()
 visible_latex_char_map = {v: k for k, v in visible_latex_char_map.items()}
 
 prediction_list = []
 image_list = []
+target_list = []
 
 images: Tensor
 for test_data_index, (images, targets) in enumerate(dataloader):
@@ -35,20 +41,17 @@ for test_data_index, (images, targets) in enumerate(dataloader):
     tensor_prediction_list = model(images)
 
     for prediction_index, prediction in enumerate(tensor_prediction_list):
-        boxes = prediction['boxes'].detach().numpy()
-        labels = prediction['labels'].detach().numpy()
-        scores = prediction['scores'].detach().numpy()
-
-        visible_latex_chars = [visible_latex_char_map[label]
-                               for label_index, label in enumerate(labels)]
-
         prediction_list.append({
-            'boxes': boxes,
-            'labels': labels,
-            'scores': scores,
-            'visible_latex_chars': visible_latex_chars
+            'boxes': prediction['boxes'].cpu().detach().numpy(),
+            'scores': prediction['scores'].cpu().detach().numpy(),
+            'visible_latex_chars': [visible_latex_char_map[label]
+                                    for label in prediction['labels'].cpu().detach().numpy()]
+        })
+        image_list.append(cv2.cvtColor(np.array(to_pil_image(images[prediction_index])), cv2.COLOR_RGB2BGR))
+        target_list.append({
+            'boxes': targets[prediction_index]['boxes'].cpu().detach().numpy(),
+            'visible_latex_chars': [visible_latex_char_map[label]
+                                    for label in targets[prediction_index]['labels'].cpu().detach().numpy()]
         })
 
-        image_list.append(images[prediction_index])
-
-visualize(image_list, prediction_list)
+visualize(image_list, prediction_list, target_list)

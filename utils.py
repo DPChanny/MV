@@ -1,11 +1,9 @@
 import json
 
 import cv2
-import numpy as np
 import torchvision
 from torchvision.models import ResNet50_Weights
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
-from torchvision.transforms.v2.functional import to_pil_image
 
 RAW_DATA_PATH: str = ".\\raw_data"
 DATA_PATH: str = ".\\data"
@@ -31,32 +29,48 @@ def get_visible_latex_char_map():
     return data
 
 
-def get_image(image, boxes, visible_latex_chars, scores, iou_threshold):
-    cv2.putText(image, "{} * {} ({:.3f} ~ {:.3f})".format(image.shape[0], image.shape[1],
+def get_image(image, prediction, target, iou_threshold):
+    alpha = 1
+    image = image.copy()
+    cv2.putText(image, "{} x {} ({:.3f} ~ {:.3f})".format(image.shape[0], image.shape[1],
                                                           iou_threshold[0], iou_threshold[1]),
                 (0, 25),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1, (0, 0, 0, 255), 1)
-    for index, visible_latex_char in enumerate(visible_latex_chars):
-        if scores[index] < iou_threshold[0] or scores[index] > iou_threshold[1]:
+
+    if target is not None:
+        for index, visible_latex_char in enumerate(target['visible_latex_chars']):
+            overlay = image.copy()
+            cv2.rectangle(overlay,
+                          (int(target['boxes'][index][0]), int(target['boxes'][index][1])),
+                          (int(target['boxes'][index][2]), int(target['boxes'][index][3])),
+                          color=(255, 0, 0, 255),
+                          thickness=1)
+            cv2.putText(overlay, visible_latex_char,
+                        (int(target['boxes'][index][0]), int(target['boxes'][index][1]) - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (255, 0, 0, 255), 1)
+            image = cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0)
+
+    for index, visible_latex_char in enumerate(prediction['visible_latex_chars']):
+        if prediction['scores'][index] < iou_threshold[0] or prediction['scores'][index] > iou_threshold[1]:
             continue
         overlay = image.copy()
         cv2.rectangle(overlay,
-                      (int(boxes[index][0]), int(boxes[index][1])),
-                      (int(boxes[index][2]), int(boxes[index][3])),
+                      (int(prediction['boxes'][index][0]), int(prediction['boxes'][index][1])),
+                      (int(prediction['boxes'][index][2]), int(prediction['boxes'][index][3])),
                       color=(0, 255, 0, 255),
                       thickness=1)
-        cv2.putText(overlay, visible_latex_char + " ({:.3f})".format(scores[index]),
-                    (int(boxes[index][0]), int(boxes[index][1]) - 5),
+        cv2.putText(overlay, visible_latex_char + " ({:.3f})".format(prediction['scores'][index]),
+                    (int(prediction['boxes'][index][0]), int(prediction['boxes'][index][1]) - 5),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5, (0, 255, 0, 255), 1)
-        # alpha = (scores[index] - iou_threshold[0]) / (iou_threshold[1] - iou_threshold[0])
-        alpha = 1
         image = cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0)
+
     return image
 
 
-def visualize(image_list, prediction_list):
+def visualize(image_list, prediction_list, target_list=None):
     cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 
     iou_threshold = [0.0, 1.0]
@@ -64,13 +78,10 @@ def visualize(image_list, prediction_list):
     image_index = 0
 
     while True:
-        image = cv2.cvtColor(np.array(to_pil_image(image_list[image_index])), cv2.COLOR_RGB2BGR)
-        image = get_image(image,
-                          prediction_list[image_index]['boxes'],
-                          prediction_list[image_index]['visible_latex_chars'],
-                          prediction_list[image_index]['scores'],
-                          iou_threshold)
-        cv2.imshow('image', image)
+        cv2.imshow('image', get_image(image_list[image_index],
+                                      prediction_list[image_index],
+                                      target_list[image_index] if target_list is not None else None,
+                                      iou_threshold))
         key = cv2.waitKey(0)
 
         if key == ord('Q') or key == ord('q'):
