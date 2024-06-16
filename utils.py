@@ -8,7 +8,7 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_res
 
 from CoordConv2d import CoordConv2d
 
-PROJECT_PATH: str = "C:\\Users\\kyoun\\P\\Python\\MV"
+PROJECT_PATH: str = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH: str = os.path.join(PROJECT_PATH, "models")
 
@@ -143,7 +143,6 @@ def get_model(model_version, coord_conv_2d_version, device):
 
 def set_coord_conv_2d(model, coord_conv_2d_version):
     for name, child in model.named_children():
-        print(name)
         model._modules[name] = set_coord_conv_2d(child, coord_conv_2d_version)
 
     if isinstance(model, Conv2d):

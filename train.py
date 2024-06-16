@@ -43,10 +43,10 @@ else:
     start_epoch = 0
     start_batch = 0
 
-VERBOSE_TERM = 50
+VERBOSE_TERM = 1
 BATCH_SIZE = 10000
-MINI_BATCH_SIZE = 2
-TEMP_CHECK_POINT_TERM = 500
+MINI_BATCH_SIZE = 1
+TEMP_CHECK_POINT_TERM = 50
 
 model.train()
 
@@ -54,6 +54,13 @@ json_list = [file for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH)) if 
 batch_json_lists = []
 for index in range(0, len(json_list), BATCH_SIZE):
     batch_json_lists.append(json_list[index:min(index + BATCH_SIZE, len(json_list))])
+
+if not os.path.exists(os.path.join(MODEL_PATH,
+                                   str(MODEL_VERSION),
+                                   str(COORD_CONV_2D_VERSION))):
+    os.makedirs(os.path.join(MODEL_PATH,
+                             str(MODEL_VERSION),
+                             str(COORD_CONV_2D_VERSION)))
 
 for epoch in range(start_epoch, EPOCHS):
     for batch, batch_json_list in enumerate(batch_json_lists, start_batch):
@@ -92,7 +99,7 @@ for epoch in range(start_epoch, EPOCHS):
                 loss_history_list.clear()
 
                 print(("EPOCH {}/{} | BATCH {}/{} | PROGRESS {}/{} "
-                       + "| TOTAL MEAN LOSS {:.5f}"
+                       + "| TOTAL MEAN LOSS {:.5f} "
                        + "| MEAN LOSS [objectness: {:.5f}, rpn_box_reg: {:.5f}, "
                        + "classifier: {:.5f}, box_reg: {:.5f}] "
                        + "| DURATION: {:.5f}s").format(epoch, EPOCHS,

@@ -15,7 +15,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 
 model = get_model(device)
-model.load_state_dict(torch.load(".\\check_point.pth", map_location=device)['state_dict'])
+model.load_state_dict(torch.load(".\\temp\\check_point.pth", map_location=device)['state_dict'])
 model.eval()
 
 print(model)

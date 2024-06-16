@@ -11,8 +11,11 @@ class CoordConv2d(conv.Conv2d):
         self.conv = nn.Conv2d(conv_2d.in_channels + 3, conv_2d.out_channels, conv_2d.kernel_size,
                               conv_2d.stride, conv_2d.padding, conv_2d.dilation,
                               conv_2d.groups, False if conv_2d._parameters['bias'] is None else True)
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     def forward(self, images):
+        images = images.cpu()
+
         b, c, h, w = images.shape
 
         xx_range = torch.arange(h, dtype=torch.int32)[None, None, :, None]
@@ -36,4 +39,4 @@ class CoordConv2d(conv.Conv2d):
 
         images = torch.cat((images, xx_channel, yy_channel, rr), dim=1)
 
-        return self.conv(images)
+        return self.conv(images.to(self.device))
