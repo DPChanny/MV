@@ -3,7 +3,8 @@ import os
 from enum import Enum
 
 import cv2
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn
+from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn, FasterRCNN, \
+    FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights
 
 from CoordConv2d import CoordConv2d
 
@@ -19,8 +20,10 @@ JPG_PATH: str = "jpgs"
 
 
 class ModelVersion(Enum):
-    V1 = fasterrcnn_resnet50_fpn()
-    V2 = fasterrcnn_resnet50_fpn_v2()
+    V1_PRETRAINED = 0
+    V2_PRETRAINED = 1
+    V1 = 2
+    V2 = 3
 
 
 class CoordConv2dVersion(Enum):
@@ -127,7 +130,17 @@ def collate_fn(batch):
 
 
 def get_model(model_version, coord_conv_2d_version, device):
-    model = model_version.value
+    if model_version == ModelVersion.V1_PRETRAINED:
+        model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
+                                        tranable_layers=5)
+    elif model_version == ModelVersion.V2_PRETRAINED:
+        model = fasterrcnn_resnet50_fpn_v2(weights=FasterRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
+                                           tranable_layers=5)
+    elif model_version == ModelVersion.V1:
+        model = fasterrcnn_resnet50_fpn()
+    else:
+        model = fasterrcnn_resnet50_fpn_v2()
+
     num_classes = len(get_visible_latex_char_map()) + 1
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = faster_rcnn.FastRCNNPredictor(in_features, num_classes)
