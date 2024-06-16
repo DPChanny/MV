@@ -3,7 +3,6 @@ import os
 from enum import Enum
 
 import cv2
-from torch.nn import Conv2d
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn
 
 from CoordConv2d import CoordConv2d
@@ -133,19 +132,9 @@ def get_model(model_version, coord_conv_2d_version, device):
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = faster_rcnn.FastRCNNPredictor(in_features, num_classes)
 
-    if coord_conv_2d_version.value is not None:
-        model = set_coord_conv_2d(model, coord_conv_2d_version)
+    if coord_conv_2d_version is not CoordConv2dVersion.NONE:
+        model.backbone.body.conv1 = CoordConv2d(model.backbone.body.conv1)
 
     model.to(device)
-
-    return model
-
-
-def set_coord_conv_2d(model, coord_conv_2d_version):
-    for name, child in model.named_children():
-        model._modules[name] = set_coord_conv_2d(child, coord_conv_2d_version)
-
-    if isinstance(model, Conv2d):
-        model = CoordConv2d(model)
 
     return model

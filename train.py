@@ -44,9 +44,9 @@ else:
     start_batch = 0
 
 VERBOSE_TERM = 1
-BATCH_SIZE = 10000
-MINI_BATCH_SIZE = 1
-TEMP_CHECK_POINT_TERM = 50
+BATCH_SIZE = 5000
+MINI_BATCH_SIZE = 2
+TEMP_CHECK_POINT_TERM = 500
 
 model.train()
 
@@ -139,6 +139,6 @@ for epoch in range(start_epoch, EPOCHS):
                     }, os.path.join(MODEL_PATH,
                                     str(MODEL_VERSION),
                                     str(COORD_CONV_2D_VERSION),
-                                    "{}/{}_{}/{}.pth".format(epoch, EPOCHS,
-                                                             batch, BATCH_SIZE)))
+                                    "{}of{}_{}of{}.pth".format(epoch, EPOCHS,
+                                                               batch, BATCH_SIZE)))
         scheduler.step()
