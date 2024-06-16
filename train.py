@@ -17,7 +17,7 @@ model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
 print(model)
 
 EPOCHS = 10
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 1e-3
 VERBOSE_TERM = 1
 BATCH_SIZE = 5000
 MINI_BATCH_SIZE = 2
@@ -119,4 +119,5 @@ for epoch in range(start_epoch, EPOCHS):
                                     str(COORD_CONV_2D_VERSION),
                                     "{}of{}_{}of{}.pth".format(epoch, EPOCHS,
                                                                batch, BATCH_SIZE)))
-        scheduler.step()
+
+    scheduler.step()
