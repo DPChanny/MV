@@ -20,7 +20,7 @@ model.load_state_dict(torch.load(os.path.join(MODEL_PATH,
                                               str(MODEL_VERSION),
                                               str(COORD_CONV_2D_VERSION),
                                               "check_point.pth"),
-                                 map_location=device)['state_dict'])
+                                 map_location=device)['model'])
 model.eval()
 
 test_data_count = 5
