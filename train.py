@@ -12,8 +12,6 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
 
-print(model)
-
 EPOCHS = 10
 LEARNING_RATE = 1e-3
 VERBOSE_TERM = 1

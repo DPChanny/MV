@@ -1,25 +1,12 @@
 import json
 import os
-from enum import Enum
 
 import cv2
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn, FasterRCNN, \
-    FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights
+from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn
+from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights
 
 from CoordConv2d import CoordConv2d
-from config import PROJECT_PATH
-
-
-class ModelVersion(Enum):
-    V1_PRETRAINED = 0
-    V2_PRETRAINED = 1
-    V1 = 2
-    V2 = 3
-
-
-class CoordConv2dVersion(Enum):
-    NONE = 0
-    V1 = 1
+from config import PROJECT_PATH, ModelVersion, CoordConv2dVersion
 
 
 def json_parser(json_path):
@@ -140,5 +127,6 @@ def get_model(model_version, coord_conv_2d_version, device):
         model.backbone.body.conv1 = CoordConv2d(model.backbone.body.conv1)
 
     model.to(device)
+    print(model)
 
     return model

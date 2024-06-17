@@ -1,6 +1,18 @@
 import os
+from enum import Enum
 
-from utils import CoordConv2dVersion, ModelVersion
+
+class ModelVersion(Enum):
+    V1_PRETRAINED = 0
+    V2_PRETRAINED = 1
+    V1 = 2
+    V2 = 3
+
+
+class CoordConv2dVersion(Enum):
+    NONE = 0
+    V1 = 1
+
 
 MODEL_VERSION = ModelVersion.V2_PRETRAINED
 COORD_CONV_2D_VERSION = CoordConv2dVersion.V1
