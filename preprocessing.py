@@ -2,15 +2,12 @@ import json
 import os
 from PIL import Image
 
-from utils import JSON_PATH, DATA_PATH, JPG_PATH, RAW_DATA_PATH
-
-if not os.path.exists(DATA_PATH):
-    os.mkdir(DATA_PATH)
+from config import DATA_PATH, JPG_PATH, JSON_PATH, RAW_DATA_PATH
 
 if not os.path.exists(os.path.join(DATA_PATH, JSON_PATH)):
-    os.mkdir(os.path.join(DATA_PATH, JSON_PATH))
+    os.makedirs(os.path.join(DATA_PATH, JSON_PATH))
 if not os.path.exists(os.path.join(DATA_PATH, JPG_PATH)):
-    os.mkdir(os.path.join(DATA_PATH, JPG_PATH))
+    os.makedirs(os.path.join(DATA_PATH, JPG_PATH))
 
 data_index = 0
 

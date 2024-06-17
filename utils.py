@@ -7,16 +7,7 @@ from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_res
     FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights
 
 from CoordConv2d import CoordConv2d
-
-PROJECT_PATH: str = os.path.dirname(os.path.abspath(__file__))
-
-MODEL_PATH: str = os.path.join(PROJECT_PATH, "models")
-
-RAW_DATA_PATH: str = os.path.join(PROJECT_PATH, "raw_data")
-DATA_PATH: str = os.path.join(PROJECT_PATH, "data")
-
-JSON_PATH: str = "jsons"
-JPG_PATH: str = "jpgs"
+from config import PROJECT_PATH
 
 
 class ModelVersion(Enum):

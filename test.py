@@ -9,12 +9,12 @@ from torch.utils.data import DataLoader
 from torchvision.transforms.v2.functional import to_pil_image
 
 from MVDataset import MVDataset
-from utils import get_visible_latex_char_map, DATA_PATH, JSON_PATH, get_model, visualize, collate_fn, ModelVersion, \
-    CoordConv2dVersion, MODEL_PATH
+from config import MODEL_PATH, DATA_PATH, JSON_PATH
+from utils import get_visible_latex_char_map, get_model, visualize, collate_fn, ModelVersion, CoordConv2dVersion
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-MODEL_VERSION = ModelVersion.V2
+MODEL_VERSION = ModelVersion.V2_PRETRAINED
 COORD_CONV_2D_VERSION = CoordConv2dVersion.V1
 
 model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
@@ -28,7 +28,7 @@ model.eval()
 
 print(model)
 
-test_data_count = 25
+test_data_count = 5
 
 json_list = random.sample([file
                            for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))

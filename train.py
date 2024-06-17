@@ -5,12 +5,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from MVDataset import MVDataset
-from utils import DATA_PATH, JSON_PATH, collate_fn, get_model, ModelVersion, CoordConv2dVersion, MODEL_PATH
+from config import MODEL_VERSION, COORD_CONV_2D_VERSION, MODEL_PATH, DATA_PATH, JSON_PATH
+from utils import collate_fn, get_model
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-MODEL_VERSION = ModelVersion.V2_PRETRAINED
-COORD_CONV_2D_VERSION = CoordConv2dVersion.V1
 
 model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
 
