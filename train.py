@@ -68,7 +68,7 @@ for epoch in range(start_epoch, EPOCHS):
                                     str(MODEL_VERSION),
                                     str(COORD_CONV_2D_VERSION),
                                     "{}-{}_{}-{}.pth".format(epoch, EPOCHS,
-                                                             batch, BATCH_SIZE)))
+                                                             batch, len(batch_json_lists))))
 
         dataset = MVDataset(DATA_PATH, batch_json_list, device, True)
         dataloader = DataLoader(dataset, shuffle=True, batch_size=MINI_BATCH_SIZE, collate_fn=collate_fn)
