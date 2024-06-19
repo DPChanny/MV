@@ -12,13 +12,16 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
 
-EPOCHS = 5
+EPOCHS = 10
 LEARNING_RATE = 1e-3
+ETA_MIN = 1e-6
 VERBOSE_TERM = 1
-BATCH_SIZE = 1000
+BATCH_SIZE = 2000
 MINI_BATCH_SIZE = 2
 
-optimizer = torch.optim.Adam(params=model.parameters(), lr=LEARNING_RATE)
+optimizer = torch.optim.AdamW(params=model.parameters(),
+                              lr=LEARNING_RATE,
+                              weight_decay=0.0005)
 
 if os.path.exists(os.path.join(MODEL_PATH,
                                str(MODEL_VERSION),
@@ -33,13 +36,17 @@ if os.path.exists(os.path.join(MODEL_PATH,
     start_batch = check_point['start_batch']
     model.load_state_dict(check_point['model'])
     optimizer.load_state_dict(check_point['optimizer'])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS,
-                                                           last_epoch=start_epoch)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                           EPOCHS,
+                                                           last_epoch=start_epoch,
+                                                           eta_min=ETA_MIN)
     scheduler.load_state_dict(check_point['scheduler'])
 else:
     start_epoch = 0
     start_batch = 0
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                           EPOCHS,
+                                                           eta_min=ETA_MIN)
 
 model.train()
 
@@ -58,7 +65,7 @@ if not os.path.exists(os.path.join(MODEL_PATH,
                              str(COORD_CONV_2D_VERSION)))
 
 for epoch in range(start_epoch, EPOCHS):
-    for batch, batch_json_list in enumerate(batch_json_lists, start_batch):
+    for batch in range(start_batch, len(batch_json_lists)):
         torch.save({'start_epoch': epoch,
                     'start_batch': batch,
                     'model': model.state_dict(),
@@ -70,7 +77,7 @@ for epoch in range(start_epoch, EPOCHS):
                                     "{}-{}_{}-{}.pth".format(epoch, EPOCHS,
                                                              batch, len(batch_json_lists))))
 
-        dataset = MVDataset(DATA_PATH, batch_json_list, device, True)
+        dataset = MVDataset(DATA_PATH, batch_json_lists[batch], device, True)
         dataloader = DataLoader(dataset, shuffle=True, batch_size=MINI_BATCH_SIZE, collate_fn=collate_fn)
 
         start = time.time()
