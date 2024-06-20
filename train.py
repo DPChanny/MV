@@ -101,16 +101,15 @@ for epoch in range(start_epoch, EPOCHS):
 
             optimizer.zero_grad()
             duration_history['zero_grad'].append(timer.end())
-
-            timer.start()
+          
             loss = model(images, targets)
-            total_loss = torch.sum(torch.stack([value for value in loss.values()]))
             duration_history['forward'].append(timer.end())
 
             for key, value in loss.items():
                 loss_history[key].append(value.item())
             duration_history['loss_history'].append(timer.end())
 
+            total_loss = torch.sum(torch.stack([value for value in loss.values()]))
             total_loss.backward()
             duration_history['backward'].append(timer.end())
 
