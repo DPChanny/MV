@@ -138,7 +138,7 @@ for epoch in range(start_epoch, EPOCHS):
                     value.clear()
                 print("| MEAN DURATION TOTAL {:.3f} ".format(mean_duration_total))
 
-                et_batch = mean_duration_total * BATCH_SIZE / MINI_BATCH_SIZE
+                et_batch = mean_duration_total * len(dataloader)
                 et_epoch = et_batch * len(batch_json_lists)
                 et_train = et_epoch * EPOCHS
 
@@ -152,8 +152,7 @@ for epoch in range(start_epoch, EPOCHS):
                 print("ESTIMATED TIME (train: {}) (epoch: {}) (batch: {})".format(
                     get_time_format(time.time() + et_train * get_ratio(epoch, EPOCHS)),
                     get_time_format(time.time() + et_epoch * get_ratio(batch, len(batch_json_lists))),
-                    get_time_format(time.time() + et_batch * get_ratio(mini_batch_data_index,
-                                                                       BATCH_SIZE / MINI_BATCH_SIZE))))
+                    get_time_format(time.time() + et_batch * get_ratio(mini_batch_data_index, len(dataloader)))))
 
             timer.start()
 
