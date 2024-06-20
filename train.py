@@ -66,16 +66,23 @@ if not os.path.exists(os.path.join(MODEL_PATH,
 
 for epoch in range(start_epoch, EPOCHS):
     for batch in range(start_batch, len(batch_json_lists)):
-        torch.save({'start_epoch': epoch,
-                    'start_batch': batch,
-                    'model': model.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'scheduler': scheduler.state_dict()
-                    }, os.path.join(MODEL_PATH,
-                                    str(MODEL_VERSION),
-                                    str(COORD_CONV_2D_VERSION),
-                                    "{}-{}_{}-{}.pth".format(epoch, EPOCHS,
-                                                             batch, len(batch_json_lists))))
+        check_point = {'start_epoch': epoch,
+                       'start_batch': batch,
+                       'model': model.state_dict(),
+                       'optimizer': optimizer.state_dict(),
+                       'scheduler': scheduler.state_dict()
+                       }
+
+        torch.save(check_point, os.path.join(MODEL_PATH,
+                                             str(MODEL_VERSION),
+                                             str(COORD_CONV_2D_VERSION),
+                                             "{}-{}_{}-{}.pth".format(epoch, EPOCHS,
+                                                                      batch, len(batch_json_lists))))
+        torch.save(check_point, os.path.join(MODEL_PATH,
+                                             str(MODEL_VERSION),
+                                             str(COORD_CONV_2D_VERSION),
+                                             "check_point.pth".format(epoch, EPOCHS,
+                                                                      batch, len(batch_json_lists))))
 
         dataset = MVDataset(DATA_PATH, batch_json_lists[batch], device, True)
         dataloader = DataLoader(dataset, shuffle=True, batch_size=MINI_BATCH_SIZE, collate_fn=collate_fn)
@@ -99,6 +106,7 @@ for epoch in range(start_epoch, EPOCHS):
                                                        batch, len(batch_json_lists),
                                                        mini_batch_data_index, len(dataloader),
                                                        total_loss,
+
                                                        loss['loss_objectness'], loss['loss_rpn_box_reg'],
                                                        loss['loss_classifier'], loss['loss_box_reg'],
                                                        end - start))
@@ -107,5 +115,7 @@ for epoch in range(start_epoch, EPOCHS):
 
             total_loss.backward()
             optimizer.step()
+
+        del dataset, dataloader
 
     scheduler.step()
