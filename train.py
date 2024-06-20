@@ -15,7 +15,7 @@ model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
 EPOCHS = 10
 LEARNING_RATE = 1e-3
 ETA_MIN = 1e-6
-VERBOSE_TERM = 50
+VERBOSE = 50
 BATCH_SIZE = 2000
 MINI_BATCH_SIZE = 2
 
@@ -121,7 +121,7 @@ for epoch in range(start_epoch, EPOCHS):
                                                                       batch, len(batch_json_lists),
                                                                       mini_batch_data_index, len(dataloader)))
 
-            if not mini_batch_data_index % VERBOSE_TERM:
+            if not mini_batch_data_index % VERBOSE:
                 print("MEAN LOSS ", end='')
                 mean_loss_total = 0
                 for name, value in loss_history.items():
