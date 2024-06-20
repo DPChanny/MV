@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import cv2
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn
@@ -130,3 +131,16 @@ def get_model(model_version, coord_conv_2d_version, device):
     print(model)
 
     return model
+
+
+class Timer:
+    def __init__(self):
+        self.last_start = time.time()
+
+    def end(self):
+        elapsed_time = time.time() - self.last_start
+        self.last_start = time.time()
+        return elapsed_time
+
+    def start(self):
+        self.last_start = time.time()
