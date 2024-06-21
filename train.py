@@ -91,9 +91,9 @@ for epoch in range(start_epoch, EPOCHS):
         loss_history = {"loss_objectness": list(), "loss_rpn_box_reg": list(),
                         "loss_classifier": list(), "loss_box_reg": list()}
 
-        duration_history = {'forward': list(), 'backward': list(),
-                            'loss_history': list(), 'load': list(),
-                            'zero_grad': list(), 'step': list()}
+        duration_history = {'load': list(), 'zero_grad': list(),
+                            'forward': list(),  'loss_history': list(),
+                            'backward': list(), 'step': list()}
 
         timer.start()
         for mini_batch_data_index, (images, targets) in enumerate(dataloader):
@@ -101,7 +101,7 @@ for epoch in range(start_epoch, EPOCHS):
 
             optimizer.zero_grad()
             duration_history['zero_grad'].append(timer.end())
-          
+
             loss = model(images, targets)
             duration_history['forward'].append(timer.end())
 
@@ -133,9 +133,9 @@ for epoch in range(start_epoch, EPOCHS):
                 print("MEAN DURATION ", end='')
                 for name, value in duration_history.items():
                     mean_duration_total += sum(value) / len(value)
-                    print("({}: {:.3f}) ".format(name, sum(value) / len(value)), end='')
+                    print("({}: {:.5f}) ".format(name, sum(value) / len(value)), end='')
                     value.clear()
-                print("| MEAN DURATION TOTAL {:.3f} ".format(mean_duration_total))
+                print("| MEAN DURATION TOTAL {:.5f} ".format(mean_duration_total))
 
                 et_batch = mean_duration_total * len(dataloader)
                 et_epoch = et_batch * len(batch_json_lists)
