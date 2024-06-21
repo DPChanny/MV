@@ -147,7 +147,6 @@ for epoch in range(start_epoch, EPOCHS):
                 def get_ratio(current, total):
                     return (total - current - 1) / total
 
-
                 print("ESTIMATED TIME (train: {}) (epoch: {}) (batch: {})".format(
                     get_time_format(time.time() + et_train * get_ratio(epoch, EPOCHS)),
                     get_time_format(time.time() + et_epoch * get_ratio(batch, len(batch_json_lists))),
@@ -156,5 +155,7 @@ for epoch in range(start_epoch, EPOCHS):
             timer.start()
 
         del dataset, dataloader
+
+    start_batch = 0
 
     scheduler.step()
