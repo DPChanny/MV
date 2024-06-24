@@ -16,7 +16,7 @@ from vlc_detector_utils import get_vlc_map, get_model, collate_fn, load_model, l
 model = load_model(get_model(VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, DEVICE), load_checkpoint(DEVICE))
 model.eval()
 
-test_data_count = 5
+test_data_count = 10
 
 json_list = random.sample([file
                            for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))

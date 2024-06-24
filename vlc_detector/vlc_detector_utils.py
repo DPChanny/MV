@@ -95,7 +95,7 @@ def load_scheduler(scheduler, checkpoint):
     return scheduler
 
 
-def save_checkpoint(epoch, len_epoch, batch, len_batch, model, optimizer, scheduler):
+def save_checkpoint(epoch, total_epoch, batch, total_batch, model, optimizer, scheduler):
     if not os.path.exists(os.path.join(MODEL_PATH,
                                        str(VLC_DETECTOR_VERSION),
                                        str(COORD_CONV_2D_VERSION))):
@@ -112,10 +112,10 @@ def save_checkpoint(epoch, len_epoch, batch, len_batch, model, optimizer, schedu
     torch.save(values, os.path.join(MODEL_PATH,
                                     str(VLC_DETECTOR_VERSION),
                                     str(COORD_CONV_2D_VERSION),
-                                    "{}-{}_{}-{}.pth".format(epoch, len_epoch,
-                                                             batch, len_batch)))
+                                    "{}-{}_{}-{}.pth".format(epoch, total_epoch,
+                                                             batch, total_batch)))
     torch.save(values, os.path.join(MODEL_PATH,
                                     str(VLC_DETECTOR_VERSION),
                                     str(COORD_CONV_2D_VERSION),
-                                    "checkpoint.pth".format(epoch, len_epoch,
-                                                            batch, len_batch)))
+                                    "checkpoint.pth".format(epoch, total_epoch,
+                                                            batch, total_batch)))
