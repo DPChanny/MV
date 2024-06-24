@@ -29,7 +29,7 @@ optimizer = load_optimizer(optimizer, checkpoint)
 
 start_epoch, start_batch = load_starts(checkpoint)
 
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS, last_epoch=start_epoch, eta_min=ETA_MIN)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS, eta_min=ETA_MIN)
 scheduler = load_scheduler(scheduler, checkpoint)
 
 json_list = [file for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH)) if file.endswith(".json")]

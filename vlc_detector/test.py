@@ -25,8 +25,7 @@ json_list = random.sample([file
 dataset = MVDataset(DATA_PATH, json_list, DEVICE, False)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
-vlc_map = get_vlc_map()
-vlc_map = {v: k for k, v in vlc_map.items()}
+vlc_map = {v: k for k, v in get_vlc_map().items()}
 
 prediction_list = []
 image_list = []

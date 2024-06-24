@@ -7,8 +7,8 @@ from torchvision.models.detection import (
 
 from CoordConv2d import CoordConv2d
 from utils import get_vlc_map
-from vlc_detector_configs import VLCDetectorVersion, CoordConv2dVersion, MODEL_PATH, COORD_CONV_2D_VERSION, \
-    VLC_DETECTOR_VERSION
+from vlc_detector_configs import (VLCDetectorVersion, CoordConv2dVersion,
+                                  MODEL_PATH, COORD_CONV_2D_VERSION, VLC_DETECTOR_VERSION)
 
 
 def collate_fn(batch):
@@ -89,6 +89,7 @@ def load_model(model, checkpoint):
 
 def load_scheduler(scheduler, checkpoint):
     if checkpoint is not None:
+        scheduler.last_epoch = checkpoint['start_epoch']
         scheduler.load_state_dict(checkpoint['scheduler'])
 
     return scheduler
