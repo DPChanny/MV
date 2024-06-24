@@ -32,7 +32,7 @@ def get_model(model_version, coord_conv_2d_version, device):
     else:
         model = fasterrcnn_resnet50_fpn_v2()
 
-    num_classes = len(get_visible_latex_char_map()) + 1
+    num_classes = len(get_vlc_map()) + 1
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = faster_rcnn.FastRCNNPredictor(in_features, num_classes)
 
@@ -45,7 +45,7 @@ def get_model(model_version, coord_conv_2d_version, device):
     return model
 
 
-def get_visible_latex_char_map():
+def get_vlc_map():
     with open(os.path.join(PROJECT_PATH, "vlc_map.json"), "r") as file:
         data = json.load(file)
 

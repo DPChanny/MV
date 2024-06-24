@@ -8,10 +8,10 @@ def json_parser(json_path):
     with open(json_path, "r") as file:
         data = json.load(file)
 
-    return (data['visible_latex_chars'],
-            [(data['x_mins'][i], data['y_mins'][i],
-              data['x_maxes'][i], data['y_maxes'][i])
-             for i in range(len(data['visible_latex_chars']))])
+    return (data['vlcs'],
+            [(data['x_mins'][vlc_index], data['y_mins'][vlc_index],
+              data['x_maxes'][vlc_index], data['y_maxes'][vlc_index])
+             for vlc_index in range(len(data['vlcs']))])
 
 
 def get_image(image, prediction, target, iou_threshold):
@@ -24,30 +24,30 @@ def get_image(image, prediction, target, iou_threshold):
                 0.5, (0, 0, 0, 255), 1)
 
     if target is not None:
-        for index, visible_latex_char in enumerate(target['visible_latex_chars']):
+        for vlc_index in target['vlcs']:
             overlay = image.copy()
             cv2.rectangle(overlay,
-                          (int(target['boxes'][index][0]), int(target['boxes'][index][1])),
-                          (int(target['boxes'][index][2]), int(target['boxes'][index][3])),
+                          (int(target['boxes'][vlc_index][0]), int(target['boxes'][vlc_index][1])),
+                          (int(target['boxes'][vlc_index][2]), int(target['boxes'][vlc_index][3])),
                           color=(255, 0, 0, 255),
                           thickness=1)
-            cv2.putText(overlay, visible_latex_char,
-                        (int(target['boxes'][index][0]), int(target['boxes'][index][1]) - 5),
+            cv2.putText(overlay, target['vlcs'][vlc_index],
+                        (int(target['boxes'][vlc_index][0]), int(target['boxes'][vlc_index][1]) - 5),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, (255, 0, 0, 255), 1)
             image = cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0)
 
-    for index, visible_latex_char in enumerate(prediction['visible_latex_chars']):
-        if prediction['scores'][index] < iou_threshold[0] or prediction['scores'][index] > iou_threshold[1]:
+    for vlc_index in prediction['vlcs']:
+        if prediction['scores'][vlc_index] < iou_threshold[0] or prediction['scores'][vlc_index] > iou_threshold[1]:
             continue
         overlay = image.copy()
         cv2.rectangle(overlay,
-                      (int(prediction['boxes'][index][0]), int(prediction['boxes'][index][1])),
-                      (int(prediction['boxes'][index][2]), int(prediction['boxes'][index][3])),
+                      (int(prediction['boxes'][vlc_index][0]), int(prediction['boxes'][vlc_index][1])),
+                      (int(prediction['boxes'][vlc_index][2]), int(prediction['boxes'][vlc_index][3])),
                       color=(0, 255, 0, 255),
                       thickness=1)
-        cv2.putText(overlay, visible_latex_char + " ({:.3f})".format(prediction['scores'][index]),
-                    (int(prediction['boxes'][index][0]), int(prediction['boxes'][index][1]) - 5),
+        cv2.putText(overlay, prediction['vlcs'][vlc_index] + " ({:.3f})".format(prediction['scores'][vlc_index]),
+                    (int(prediction['boxes'][vlc_index][0]), int(prediction['boxes'][vlc_index][1]) - 5),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5, (0, 255, 0, 255), 1)
         image = cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0)
