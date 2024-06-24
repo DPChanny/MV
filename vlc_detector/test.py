@@ -9,15 +9,17 @@ from torch.utils.data import DataLoader
 from torchvision.transforms.v2.functional import to_pil_image
 
 from MVDataset import MVDataset
-from config import MODEL_PATH, DATA_PATH, JSON_PATH, MODEL_VERSION, COORD_CONV_2D_VERSION
-from utils import get_visible_latex_char_map, get_model, visualize, collate_fn
+from configs import DATA_PATH, JSON_PATH
+from utils import visualize
+from .configs import MODEL_PATH, VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION
+from .utils import get_visible_latex_char_map, get_model, collate_fn
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
+model = get_model(VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, device)
 
 model.load_state_dict(torch.load(os.path.join(MODEL_PATH,
-                                              str(MODEL_VERSION),
+                                              str(VLC_DETECTOR_VERSION),
                                               str(COORD_CONV_2D_VERSION),
                                               "check_point.pth"),
                                  map_location=device)['model'])

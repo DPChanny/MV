@@ -2,7 +2,7 @@ import json
 import os
 from PIL import Image
 
-from config import DATA_PATH, JPG_PATH, JSON_PATH, RAW_DATA_PATH
+from configs import DATA_PATH, JPG_PATH, JSON_PATH, RAW_DATA_PATH
 
 if not os.path.exists(os.path.join(DATA_PATH, JSON_PATH)):
     os.makedirs(os.path.join(DATA_PATH, JSON_PATH))
@@ -24,7 +24,8 @@ for batch in os.listdir(RAW_DATA_PATH):
 
         batch_data_count = len(os.listdir(os.path.join(RAW_DATA_PATH, batch, "background_images")))
 
-        for batch_data_index, batch_data in enumerate(os.listdir(os.path.join(RAW_DATA_PATH, batch, "background_images"))):
+        for batch_data_index, batch_data in enumerate(os.listdir(os.path.join(RAW_DATA_PATH,
+                                                                              batch, "background_images"))):
             if not batch_data_index % 100:
                 print(batch_data, data_index, str(batch_data_index) + "/" + str(batch_data_count) + " of " + batch)
 

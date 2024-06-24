@@ -5,7 +5,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 import torchvision.transforms.v2 as tt
 
-from config import JSON_PATH, JPG_PATH
+from configs import JSON_PATH, JPG_PATH
 from utils import json_parser, get_visible_latex_char_map
 
 

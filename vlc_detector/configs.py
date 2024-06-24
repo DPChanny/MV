@@ -1,0 +1,20 @@
+import os
+from enum import Enum
+
+
+class VLCDetectorVersion(Enum):
+    V1_PRETRAINED = 0
+    V2_PRETRAINED = 1
+    V1 = 2
+    V2 = 3
+
+
+class CoordConv2dVersion(Enum):
+    NONE = 0
+    V1 = 1
+
+
+VLC_DETECTOR_VERSION = VLCDetectorVersion.V2_PRETRAINED
+COORD_CONV_2D_VERSION = CoordConv2dVersion.V1
+
+MODEL_PATH: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")

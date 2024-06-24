@@ -5,12 +5,14 @@ import torch
 from torch.utils.data import DataLoader
 
 from MVDataset import MVDataset
-from config import MODEL_VERSION, COORD_CONV_2D_VERSION, MODEL_PATH, DATA_PATH, JSON_PATH
-from utils import collate_fn, get_model, Timer
+from configs import DATA_PATH, JSON_PATH
+from utils import Timer
+from .configs import VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, MODEL_PATH
+from .utils import collate_fn, get_model
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-model = get_model(MODEL_VERSION, COORD_CONV_2D_VERSION, device)
+model = get_model(VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, device)
 
 EPOCHS = 10
 LEARNING_RATE = 1e-3
@@ -24,11 +26,11 @@ optimizer = torch.optim.AdamW(params=model.parameters(),
                               weight_decay=0.0005)
 
 if os.path.exists(os.path.join(MODEL_PATH,
-                               str(MODEL_VERSION),
+                               str(VLC_DETECTOR_VERSION),
                                str(COORD_CONV_2D_VERSION),
                                "check_point.pth")):
     check_point = torch.load(os.path.join(MODEL_PATH,
-                                          str(MODEL_VERSION),
+                                          str(VLC_DETECTOR_VERSION),
                                           str(COORD_CONV_2D_VERSION),
                                           "check_point.pth"),
                              map_location=device)
@@ -58,10 +60,10 @@ for index in range(0, len(json_list), BATCH_SIZE):
     batch_json_lists.append(json_list[index:min(index + BATCH_SIZE, len(json_list))])
 
 if not os.path.exists(os.path.join(MODEL_PATH,
-                                   str(MODEL_VERSION),
+                                   str(VLC_DETECTOR_VERSION),
                                    str(COORD_CONV_2D_VERSION))):
     os.makedirs(os.path.join(MODEL_PATH,
-                             str(MODEL_VERSION),
+                             str(VLC_DETECTOR_VERSION),
                              str(COORD_CONV_2D_VERSION)))
 
 timer = Timer()
@@ -75,12 +77,12 @@ for epoch in range(start_epoch, EPOCHS):
                   'scheduler': scheduler.state_dict()}
 
         torch.save(values, os.path.join(MODEL_PATH,
-                                        str(MODEL_VERSION),
+                                        str(VLC_DETECTOR_VERSION),
                                         str(COORD_CONV_2D_VERSION),
                                         "{}-{}_{}-{}.pth".format(epoch, EPOCHS,
                                                                  batch, len(batch_json_lists))))
         torch.save(values, os.path.join(MODEL_PATH,
-                                        str(MODEL_VERSION),
+                                        str(VLC_DETECTOR_VERSION),
                                         str(COORD_CONV_2D_VERSION),
                                         "check_point.pth".format(epoch, EPOCHS,
                                                                  batch, len(batch_json_lists))))

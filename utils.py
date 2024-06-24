@@ -1,13 +1,7 @@
 import json
-import os
 import time
 
 import cv2
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_resnet50_fpn_v2, faster_rcnn
-from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights
-
-from CoordConv2d import CoordConv2d
-from config import PROJECT_PATH, ModelVersion, CoordConv2dVersion
 
 
 def json_parser(json_path):
@@ -18,13 +12,6 @@ def json_parser(json_path):
             [(data['x_mins'][i], data['y_mins'][i],
               data['x_maxes'][i], data['y_maxes'][i])
              for i in range(len(data['visible_latex_chars']))])
-
-
-def get_visible_latex_char_map():
-    with open(os.path.join(PROJECT_PATH, "visible_latex_char_map.json"), "r") as file:
-        data = json.load(file)
-
-    return data
 
 
 def get_image(image, prediction, target, iou_threshold):
@@ -96,41 +83,6 @@ def visualize(image_list, prediction_list, target_list=None):
             image_index = max(image_index - 1, 0)
         elif key == ord('.') or key == ord('>'):
             image_index = min(image_index + 1, len(image_list) - 1)
-
-
-def collate_fn(batch):
-    image_list = []
-    target_list = []
-    for image, target in batch:
-        image_list.append(image)
-        target_list.append(target)
-
-    return image_list, target_list
-
-
-def get_model(model_version, coord_conv_2d_version, device):
-    if model_version == ModelVersion.V1_PRETRAINED:
-        model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
-                                        tranable_layers=5)
-    elif model_version == ModelVersion.V2_PRETRAINED:
-        model = fasterrcnn_resnet50_fpn_v2(weights=FasterRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
-                                           tranable_layers=5)
-    elif model_version == ModelVersion.V1:
-        model = fasterrcnn_resnet50_fpn()
-    else:
-        model = fasterrcnn_resnet50_fpn_v2()
-
-    num_classes = len(get_visible_latex_char_map()) + 1
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = faster_rcnn.FastRCNNPredictor(in_features, num_classes)
-
-    if coord_conv_2d_version is not CoordConv2dVersion.NONE:
-        model.backbone.body.conv1 = CoordConv2d(model.backbone.body.conv1)
-
-    model.to(device)
-    print(model)
-
-    return model
 
 
 class Timer:
