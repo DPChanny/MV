@@ -1,7 +1,13 @@
 import json
+import os
 import time
 
 import cv2
+import torch
+
+from configs import PROJECT_PATH
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def json_parser(json_path):
@@ -86,3 +92,10 @@ class Timer:
 
     def start(self):
         self.last_start = time.time()
+
+
+def get_vlc_map():
+    with open(os.path.join(PROJECT_PATH, "vlc_map.json"), "r") as file:
+        data = json.load(file)
+
+    return data

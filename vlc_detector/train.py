@@ -6,13 +6,10 @@ from torch.utils.data import DataLoader
 
 from MVDataset import MVDataset
 from configs import DATA_PATH, JSON_PATH
-from utils import Timer
-from vlc_detector_configs import VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, MODEL_PATH
-from vlc_detector_utils import collate_fn, get_model
-
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-model = get_model(VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, device)
+from utils import Timer, DEVICE
+from vlc_detector_configs import VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION
+from vlc_detector_utils import (collate_fn, get_model, save_checkpoint,
+                                load_checkpoint, load_optimizer, load_starts, load_model, load_scheduler)
 
 EPOCHS = 10
 LEARNING_RATE = 1e-3
@@ -22,81 +19,59 @@ BATCH_SIZE = 2000
 MINI_BATCH_SIZE = 2
 WEIGHT_DECAY = 0.0005
 
-optimizer = torch.optim.AdamW(params=model.parameters(),
-                              lr=LEARNING_RATE,
-                              weight_decay=WEIGHT_DECAY)
+checkpoint = load_checkpoint(DEVICE)
 
-if os.path.exists(os.path.join(MODEL_PATH,
-                               str(VLC_DETECTOR_VERSION),
-                               str(COORD_CONV_2D_VERSION),
-                               "check_point.pth")):
-    check_point = torch.load(os.path.join(MODEL_PATH,
-                                          str(VLC_DETECTOR_VERSION),
-                                          str(COORD_CONV_2D_VERSION),
-                                          "check_point.pth"),
-                             map_location=device)
-    start_epoch = check_point['start_epoch']
-    start_batch = check_point['start_batch']
-    model.load_state_dict(check_point['model'])
-    optimizer.load_state_dict(check_point['optimizer'])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
-                                                           EPOCHS,
-                                                           last_epoch=start_epoch,
-                                                           eta_min=ETA_MIN)
-    scheduler.load_state_dict(check_point['scheduler'])
-else:
-    start_epoch = 0
-    start_batch = 0
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
-                                                           EPOCHS,
-                                                           eta_min=ETA_MIN)
-
+model = load_model(get_model(VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, DEVICE), checkpoint)
 model.train()
 
-json_list = [file
-             for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))
-             if file.endswith(".json")]
+optimizer = torch.optim.AdamW(params=model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+optimizer = load_optimizer(optimizer, checkpoint)
+
+start_epoch, start_batch = load_starts(checkpoint)
+
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS, last_epoch=start_epoch, eta_min=ETA_MIN)
+scheduler = load_scheduler(scheduler, checkpoint)
+
+json_list = [file for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH)) if file.endswith(".json")]
 batch_json_lists = []
 for index in range(0, len(json_list), BATCH_SIZE):
     batch_json_lists.append(json_list[index:min(index + BATCH_SIZE, len(json_list))])
 
-if not os.path.exists(os.path.join(MODEL_PATH,
-                                   str(VLC_DETECTOR_VERSION),
-                                   str(COORD_CONV_2D_VERSION))):
-    os.makedirs(os.path.join(MODEL_PATH,
-                             str(VLC_DETECTOR_VERSION),
-                             str(COORD_CONV_2D_VERSION)))
-
 timer = Timer()
+
+
+def calc_log_history(history, title):
+    mean_total = 0
+    print("MEAN {} ".format(title), end='')
+    for name, value_list in history.items():
+        mean = sum(value_list) / len(value_list) if value_list else 0
+        mean_total += mean
+        print("({}: {:.5f}) ".format(name, mean), end='')
+        value_list.clear()
+    print("| MEAN {} TOTAL {:.5f}".format(title, mean_total))
+
+    return mean_total
+
+
+def calc_et(total_et, progress, total):
+    return time.strftime("%Y %m %d %H:%M:%S",
+                         time.localtime(time.time() + total_et * (total - progress - 1) / total))
+
+
+loss_history = {"loss_objectness": list(), "loss_rpn_box_reg": list(),
+                "loss_classifier": list(), "loss_box_reg": list()}
+
+duration_history = {'load': list(), 'zero_grad': list(),
+                    'forward': list(), 'loss_history': list(),
+                    'backward': list(), 'step': list()}
 
 for epoch in range(start_epoch, EPOCHS):
     for batch in range(start_batch, len(batch_json_lists)):
-        values = {'start_epoch': epoch,
-                  'start_batch': batch,
-                  'model': model.state_dict(),
-                  'optimizer': optimizer.state_dict(),
-                  'scheduler': scheduler.state_dict()}
+        save_checkpoint(epoch, EPOCHS, batch, len(batch_json_lists),
+                        model, optimizer, scheduler)
 
-        torch.save(values, os.path.join(MODEL_PATH,
-                                        str(VLC_DETECTOR_VERSION),
-                                        str(COORD_CONV_2D_VERSION),
-                                        "{}-{}_{}-{}.pth".format(epoch, EPOCHS,
-                                                                 batch, len(batch_json_lists))))
-        torch.save(values, os.path.join(MODEL_PATH,
-                                        str(VLC_DETECTOR_VERSION),
-                                        str(COORD_CONV_2D_VERSION),
-                                        "check_point.pth".format(epoch, EPOCHS,
-                                                                 batch, len(batch_json_lists))))
-
-        dataset = MVDataset(DATA_PATH, batch_json_lists[batch], device, True)
+        dataset = MVDataset(DATA_PATH, batch_json_lists[batch], DEVICE, True)
         dataloader = DataLoader(dataset, shuffle=True, batch_size=MINI_BATCH_SIZE, collate_fn=collate_fn)
-
-        loss_history = {"loss_objectness": list(), "loss_rpn_box_reg": list(),
-                        "loss_classifier": list(), "loss_box_reg": list()}
-
-        duration_history = {'load': list(), 'zero_grad': list(),
-                            'forward': list(),  'loss_history': list(),
-                            'backward': list(), 'step': list()}
 
         timer.start()
         for mini_batch_data_index, (images, targets) in enumerate(dataloader):
@@ -119,41 +94,21 @@ for epoch in range(start_epoch, EPOCHS):
             optimizer.step()
             duration_history['step'].append(timer.end())
 
-            print("EPOCH {}/{} | BATCH {}/{} | PROGRESS {}/{}".format(epoch, EPOCHS,
-                                                                      batch, len(batch_json_lists),
+            print("EPOCH {}/{} | BATCH {}/{} | PROGRESS {}/{}".format(epoch, EPOCHS, batch, len(batch_json_lists),
                                                                       mini_batch_data_index, len(dataloader)))
 
             if not mini_batch_data_index % VERBOSE:
-                print("MEAN LOSS ", end='')
-                mean_loss_total = 0
-                for name, value in loss_history.items():
-                    mean_loss_total += sum(value) / len(value)
-                    print("({}: {:.5f}) ".format(name, sum(value) / len(value)), end='')
-                    value.clear()
-                print("| MEAN LOSS TOTAL {:.5f}".format(mean_loss_total))
-
-                mean_duration_total = 0
-                print("MEAN DURATION ", end='')
-                for name, value in duration_history.items():
-                    mean_duration_total += sum(value) / len(value)
-                    print("({}: {:.5f}) ".format(name, sum(value) / len(value)), end='')
-                    value.clear()
-                print("| MEAN DURATION TOTAL {:.5f} ".format(mean_duration_total))
+                calc_log_history(loss_history, "LOSS")
+                mean_duration_total = calc_log_history(duration_history, "DURATION")
 
                 et_batch = mean_duration_total * len(dataloader)
                 et_epoch = et_batch * len(batch_json_lists)
                 et_train = et_epoch * EPOCHS
 
-                def get_time_format(seconds):
-                    return time.strftime("%Y %m %d %H:%M:%S", time.localtime(seconds))
-
-                def get_ratio(current, total):
-                    return (total - current - 1) / total
-
                 print("ESTIMATED TIME (train: {}) (epoch: {}) (batch: {})".format(
-                    get_time_format(time.time() + et_train * get_ratio(epoch, EPOCHS)),
-                    get_time_format(time.time() + et_epoch * get_ratio(batch, len(batch_json_lists))),
-                    get_time_format(time.time() + et_batch * get_ratio(mini_batch_data_index, len(dataloader)))))
+                    calc_et(et_train, epoch, EPOCHS),
+                    calc_et(et_epoch, batch, len(batch_json_lists)),
+                    calc_et(et_batch, mini_batch_data_index, len(dataloader))))
 
             timer.start()
 

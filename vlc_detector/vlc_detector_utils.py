@@ -1,13 +1,14 @@
-import json
 import os
 
+import torch
 from torchvision.models.detection import (
     FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights,
     fasterrcnn_resnet50_fpn_v2, fasterrcnn_resnet50_fpn, faster_rcnn)
 
-from configs import PROJECT_PATH
 from CoordConv2d import CoordConv2d
-from vlc_detector_configs import VLCDetectorVersion, CoordConv2dVersion
+from utils import get_vlc_map
+from vlc_detector_configs import VLCDetectorVersion, CoordConv2dVersion, MODEL_PATH, COORD_CONV_2D_VERSION, \
+    VLC_DETECTOR_VERSION
 
 
 def collate_fn(batch):
@@ -45,8 +46,75 @@ def get_model(model_version, coord_conv_2d_version, device):
     return model
 
 
-def get_vlc_map():
-    with open(os.path.join(PROJECT_PATH, "vlc_map.json"), "r") as file:
-        data = json.load(file)
+def load_checkpoint(device):
+    if os.path.exists(os.path.join(MODEL_PATH,
+                                   str(VLC_DETECTOR_VERSION),
+                                   str(COORD_CONV_2D_VERSION),
+                                   "checkpoint.pth")):
+        checkpoint = torch.load(os.path.join(MODEL_PATH,
+                                             str(VLC_DETECTOR_VERSION),
+                                             str(COORD_CONV_2D_VERSION),
+                                             "checkpoint.pth"),
+                                map_location=device)
+    else:
+        checkpoint = None
 
-    return data
+    return checkpoint
+
+
+def load_optimizer(optimizer, checkpoint):
+    if checkpoint is not None:
+        optimizer.load_state_dict(checkpoint['optimizer'])
+
+    return optimizer
+
+
+def load_starts(checkpoint):
+    if checkpoint is not None:
+        start_epoch = checkpoint['start_epoch']
+        start_batch = checkpoint['start_batch']
+    else:
+        start_epoch = 0
+        start_batch = 0
+
+    return start_epoch, start_batch
+
+
+def load_model(model, checkpoint):
+    if checkpoint is not None:
+        model.load_state_dict(checkpoint['model'])
+
+    return model
+
+
+def load_scheduler(scheduler, checkpoint):
+    if checkpoint is not None:
+        scheduler.load_state_dict(checkpoint['scheduler'])
+
+    return scheduler
+
+
+def save_checkpoint(epoch, len_epoch, batch, len_batch, model, optimizer, scheduler):
+    if not os.path.exists(os.path.join(MODEL_PATH,
+                                       str(VLC_DETECTOR_VERSION),
+                                       str(COORD_CONV_2D_VERSION))):
+        os.makedirs(os.path.join(MODEL_PATH,
+                                 str(VLC_DETECTOR_VERSION),
+                                 str(COORD_CONV_2D_VERSION)))
+
+    values = {'start_epoch': epoch,
+              'start_batch': batch,
+              'model': model.state_dict(),
+              'optimizer': optimizer.state_dict(),
+              'scheduler': scheduler.state_dict()}
+
+    torch.save(values, os.path.join(MODEL_PATH,
+                                    str(VLC_DETECTOR_VERSION),
+                                    str(COORD_CONV_2D_VERSION),
+                                    "{}-{}_{}-{}.pth".format(epoch, len_epoch,
+                                                             batch, len_batch)))
+    torch.save(values, os.path.join(MODEL_PATH,
+                                    str(VLC_DETECTOR_VERSION),
+                                    str(COORD_CONV_2D_VERSION),
+                                    "checkpoint.pth".format(epoch, len_epoch,
+                                                            batch, len_batch)))
