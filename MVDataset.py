@@ -7,7 +7,7 @@ import torchvision.transforms.v2 as tt
 
 from configs import JSON_PATH, JPG_PATH
 from utils import json_parser
-from vlc_detector.utils import get_vlc_map
+from vlc_detector.vlc_detector_utils import get_vlc_map
 
 
 class MVDataset(Dataset):

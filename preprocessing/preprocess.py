@@ -26,18 +26,17 @@ for batch in os.listdir(RAW_DATA_PATH):
 
         for batch_data_index, batch_data in enumerate(os.listdir(os.path.join(RAW_DATA_PATH,
                                                                               batch, "background_images"))):
+            image_data = batch_data_map[batch_data]['image_data']
+
             if not batch_data_index % 100:
                 print(batch_data, data_index, str(batch_data_index) + "/" + str(batch_data_count) + " of " + batch)
 
-            data = {'width': batch_data_map[batch_data]['image_data']['width'],
-                    'height': batch_data_map[batch_data]['image_data']['height'],
-                    'depth': batch_data_map[batch_data]['image_data']['depth'],
-                    'full_latex_chars': batch_data_map[batch_data]['image_data']['flcs'],
-                    'visible_latex_chars': batch_data_map[batch_data]['image_data']['vlcs'],
-                    'x_mins': batch_data_map[batch_data]['image_data']['xmins_raw'],
-                    'x_maxes': batch_data_map[batch_data]['image_data']['xmaxs_raw'],
-                    'y_mins': batch_data_map[batch_data]['image_data']['ymins_raw'],
-                    'y_maxes': batch_data_map[batch_data]['image_data']['ymaxs_raw']}
+            data = {'flcs': image_data['full_latex_chars'],
+                    'vlcs': image_data['visible_latex_chars'],
+                    'x_mins': image_data['xmins_raw'],
+                    'x_maxs': image_data['xmaxs_raw'],
+                    'y_mins': image_data['ymins_raw'],
+                    'y_maxs': image_data['ymaxs_raw']}
 
             with open(os.path.join(DATA_PATH, JSON_PATH, str(data_index) + ".json"), "w") as file:
                 json.dump(data, file)

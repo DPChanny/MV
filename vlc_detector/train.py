@@ -7,8 +7,8 @@ from torch.utils.data import DataLoader
 from MVDataset import MVDataset
 from configs import DATA_PATH, JSON_PATH
 from utils import Timer
-from .configs import VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, MODEL_PATH
-from .utils import collate_fn, get_model
+from vlc_detector_configs import VLC_DETECTOR_VERSION, COORD_CONV_2D_VERSION, MODEL_PATH
+from vlc_detector_utils import collate_fn, get_model
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -20,10 +20,11 @@ ETA_MIN = 1e-6
 VERBOSE = 50
 BATCH_SIZE = 2000
 MINI_BATCH_SIZE = 2
+WEIGHT_DECAY = 0.0005
 
 optimizer = torch.optim.AdamW(params=model.parameters(),
                               lr=LEARNING_RATE,
-                              weight_decay=0.0005)
+                              weight_decay=WEIGHT_DECAY)
 
 if os.path.exists(os.path.join(MODEL_PATH,
                                str(VLC_DETECTOR_VERSION),

@@ -16,7 +16,7 @@ class CoordConv2d(conv.Conv2d):
     def forward(self, images):
         result_images = []
         b = images.shape[0]
-        for _b in range(b):
+        for _, image in enumerate(images):
             h, w = images.shape[2:]
             h_range = torch.arange(h, dtype=torch.float32, device=self.device) / (h - 1)
             w_range = torch.arange(w, dtype=torch.float32, device=self.device) / (w - 1)
@@ -25,6 +25,6 @@ class CoordConv2d(conv.Conv2d):
             w_channel = w_range.repeat(1, h, 1)
             r_channel = torch.sqrt(torch.pow(h_channel - 0.5, 2) + torch.pow(w_channel - 0.5, 2))
 
-            result_images.append(torch.cat((images[_b], h_channel, w_channel, r_channel)))
+            result_images.append(torch.cat((image, h_channel, w_channel, r_channel)))
 
         return self.conv(torch.stack(result_images))

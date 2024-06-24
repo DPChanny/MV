@@ -6,8 +6,8 @@ from torchvision.models.detection import (
     fasterrcnn_resnet50_fpn_v2, fasterrcnn_resnet50_fpn, faster_rcnn)
 
 from configs import PROJECT_PATH
-from .CoordConv2d import CoordConv2d
-from .configs import VLCDetectorVersion, CoordConv2dVersion
+from CoordConv2d import CoordConv2d
+from vlc_detector_configs import VLCDetectorVersion, CoordConv2dVersion
 
 
 def collate_fn(batch):
