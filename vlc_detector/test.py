@@ -54,7 +54,7 @@ for test_data_index, (images, targets) in enumerate(dataloader):
             'vlcs': [vlc_map[label]
                      for label in prediction['labels'].cpu().detach().numpy()]
         })
-        image_list.append(cv2.cvtColor(np.array(to_pil_image(images)), cv2.COLOR_RGB2BGR))
+        image_list.append(cv2.cvtColor(np.array(to_pil_image(image)), cv2.COLOR_RGB2BGR))
         target_list.append({
             'boxes': target['boxes'].cpu().detach().numpy(),
             'vlcs': [vlc_map[label]
