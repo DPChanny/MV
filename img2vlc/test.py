@@ -10,8 +10,8 @@ from torchvision.transforms.v2.functional import to_pil_image
 from MVDataset import MVDataset
 from configs import DATA_PATH, JSON_PATH
 from utils import visualize, DEVICE
-from img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
-from img2vlc_utils import get_vlc_map, get_model, collate_fn, load_model, load_checkpoint
+from img2vlc.img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
+from img2vlc.img2vlc_utils import get_vlc_map, get_model, collate_fn, load_model, load_checkpoint
 
 model = load_model(get_model(IMG2VLC_VERSION, COORD_CONV_2D_VERSION, DEVICE), load_checkpoint(DEVICE))
 model.eval()

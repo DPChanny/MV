@@ -7,9 +7,9 @@ from torch.utils.data import DataLoader
 from MVDataset import MVDataset
 from configs import DATA_PATH, JSON_PATH
 from utils import Timer, DEVICE
-from img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
-from img2vlc_utils import (collate_fn, get_model, save_checkpoint,
-                           load_checkpoint, load_optimizer, load_starts, load_model, load_scheduler)
+from img2vlc.img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
+from img2vlc.img2vlc_utils import (collate_fn, get_model, load_model, save_checkpoint, load_checkpoint,
+                                   load_optimizer, load_starts,  load_scheduler)
 
 EPOCHS = 10
 LEARNING_RATE = 1e-3
