@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 from configs import JSON_PATH, JPG_PATH
 from utils import json_parser
-from vlc_detector.vlc_detector_utils import get_vlc_map
+from img2vlc.img2vlc_utils import get_vlc_map
 
 
 class MVDataset(Dataset):

@@ -2,7 +2,7 @@ import os
 from enum import Enum
 
 
-class VLCDetectorVersion(Enum):
+class ModelVersion(Enum):
     V1_PRETRAINED = 0
     V2_PRETRAINED = 1
     V1 = 2
@@ -20,7 +20,7 @@ class OptimizerVersion(Enum):
     ADAM_W = 2
 
 
-VLC_DETECTOR_VERSION = VLCDetectorVersion.V2_PRETRAINED
+IMG2VLC_VERSION = ModelVersion.V2_PRETRAINED
 COORD_CONV_2D_VERSION = CoordConv2dVersion.V1
 OPTIMIZER_VERSION = OptimizerVersion.ADAM_W
 

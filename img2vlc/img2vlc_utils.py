@@ -6,9 +6,9 @@ from torchvision.models.detection import (
     fasterrcnn_resnet50_fpn_v2, fasterrcnn_resnet50_fpn, faster_rcnn)
 
 from utils import get_vlc_map
-from vlc_detector.CoordConv2d import CoordConv2d
-from vlc_detector.vlc_detector_configs import (VLCDetectorVersion, CoordConv2dVersion,
-                                               MODEL_PATH, COORD_CONV_2D_VERSION, VLC_DETECTOR_VERSION)
+from img2vlc.CoordConv2d import CoordConv2d
+from img2vlc.img2vlc_configs import (ModelVersion, CoordConv2dVersion,
+                                     MODEL_PATH, COORD_CONV_2D_VERSION, IMG2VLC_VERSION)
 
 
 def collate_fn(batch):
@@ -22,13 +22,13 @@ def collate_fn(batch):
 
 
 def get_model(model_version, coord_conv_2d_version, device, log_model=True):
-    if model_version == VLCDetectorVersion.V1_PRETRAINED:
+    if model_version == ModelVersion.V1_PRETRAINED:
         model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
                                         tranable_layers=5)
-    elif model_version == VLCDetectorVersion.V2_PRETRAINED:
+    elif model_version == ModelVersion.V2_PRETRAINED:
         model = fasterrcnn_resnet50_fpn_v2(weights=FasterRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
                                            tranable_layers=5)
-    elif model_version == VLCDetectorVersion.V1:
+    elif model_version == ModelVersion.V1:
         model = fasterrcnn_resnet50_fpn()
     else:
         model = fasterrcnn_resnet50_fpn_v2()
@@ -49,11 +49,11 @@ def get_model(model_version, coord_conv_2d_version, device, log_model=True):
 
 def load_checkpoint(device):
     if os.path.exists(os.path.join(MODEL_PATH,
-                                   str(VLC_DETECTOR_VERSION),
+                                   str(IMG2VLC_VERSION),
                                    str(COORD_CONV_2D_VERSION),
                                    "checkpoint.pth")):
         checkpoint = torch.load(os.path.join(MODEL_PATH,
-                                             str(VLC_DETECTOR_VERSION),
+                                             str(IMG2VLC_VERSION),
                                              str(COORD_CONV_2D_VERSION),
                                              "checkpoint.pth"),
                                 map_location=device)
@@ -97,10 +97,10 @@ def load_scheduler(scheduler, checkpoint):
 
 def save_checkpoint(epoch, total_epoch, batch, total_batch, model, optimizer, scheduler):
     if not os.path.exists(os.path.join(MODEL_PATH,
-                                       str(VLC_DETECTOR_VERSION),
+                                       str(IMG2VLC_VERSION),
                                        str(COORD_CONV_2D_VERSION))):
         os.makedirs(os.path.join(MODEL_PATH,
-                                 str(VLC_DETECTOR_VERSION),
+                                 str(IMG2VLC_VERSION),
                                  str(COORD_CONV_2D_VERSION)))
 
     values = {'start_epoch': epoch,
@@ -110,12 +110,12 @@ def save_checkpoint(epoch, total_epoch, batch, total_batch, model, optimizer, sc
               'scheduler': scheduler.state_dict()}
 
     torch.save(values, os.path.join(MODEL_PATH,
-                                    str(VLC_DETECTOR_VERSION),
+                                    str(IMG2VLC_VERSION),
                                     str(COORD_CONV_2D_VERSION),
                                     "{}-{}_{}-{}.pth".format(epoch, total_epoch,
                                                              batch, total_batch)))
     torch.save(values, os.path.join(MODEL_PATH,
-                                    str(VLC_DETECTOR_VERSION),
+                                    str(IMG2VLC_VERSION),
                                     str(COORD_CONV_2D_VERSION),
                                     "checkpoint.pth".format(epoch, total_epoch,
                                                             batch, total_batch)))
