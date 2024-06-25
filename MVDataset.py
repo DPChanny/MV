@@ -1,9 +1,9 @@
 import os.path
 
 import torch
+import torchvision.transforms.v2 as tt
 from PIL import Image
 from torch.utils.data import Dataset
-import torchvision.transforms.v2 as tt
 
 from configs import JSON_PATH, JPG_PATH
 from utils import json_parser

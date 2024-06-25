@@ -5,8 +5,8 @@ from torchvision.models.detection import (
     FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights,
     fasterrcnn_resnet50_fpn_v2, fasterrcnn_resnet50_fpn, faster_rcnn)
 
-from vlc_detector.CoordConv2d import CoordConv2d
 from utils import get_vlc_map
+from vlc_detector.CoordConv2d import CoordConv2d
 from vlc_detector.vlc_detector_configs import (VLCDetectorVersion, CoordConv2dVersion,
                                                MODEL_PATH, COORD_CONV_2D_VERSION, VLC_DETECTOR_VERSION)
 
