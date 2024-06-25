@@ -5,10 +5,10 @@ from torchvision.models.detection import (
     FasterRCNN_ResNet50_FPN_Weights, FasterRCNN_ResNet50_FPN_V2_Weights,
     fasterrcnn_resnet50_fpn_v2, fasterrcnn_resnet50_fpn, faster_rcnn)
 
-from CoordConv2d import CoordConv2d
+from vlc_detector.CoordConv2d import CoordConv2d
 from utils import get_vlc_map
-from vlc_detector_configs import (VLCDetectorVersion, CoordConv2dVersion,
-                                  MODEL_PATH, COORD_CONV_2D_VERSION, VLC_DETECTOR_VERSION)
+from vlc_detector.vlc_detector_configs import (VLCDetectorVersion, CoordConv2dVersion,
+                                               MODEL_PATH, COORD_CONV_2D_VERSION, VLC_DETECTOR_VERSION)
 
 
 def collate_fn(batch):
@@ -21,7 +21,7 @@ def collate_fn(batch):
     return image_list, target_list
 
 
-def get_model(model_version, coord_conv_2d_version, device):
+def get_model(model_version, coord_conv_2d_version, device, log_model=True):
     if model_version == VLCDetectorVersion.V1_PRETRAINED:
         model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
                                         tranable_layers=5)
@@ -41,7 +41,8 @@ def get_model(model_version, coord_conv_2d_version, device):
         model.backbone.body.conv1 = CoordConv2d(model.backbone.body.conv1)
 
     model.to(device)
-    print(model)
+    if log_model:
+        print(model)
 
     return model
 
@@ -89,7 +90,6 @@ def load_model(model, checkpoint):
 
 def load_scheduler(scheduler, checkpoint):
     if checkpoint is not None:
-        scheduler.last_epoch = checkpoint['start_epoch']
         scheduler.load_state_dict(checkpoint['scheduler'])
 
     return scheduler

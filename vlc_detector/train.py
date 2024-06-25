@@ -29,7 +29,8 @@ optimizer = load_optimizer(optimizer, checkpoint)
 
 start_epoch, start_batch = load_starts(checkpoint)
 
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS, eta_min=ETA_MIN)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS - 1,
+                                                       last_epoch=start_epoch - 1, eta_min=ETA_MIN)
 scheduler = load_scheduler(scheduler, checkpoint)
 
 json_list = [file for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH)) if file.endswith(".json")]
@@ -66,6 +67,7 @@ duration_history = {'load': list(), 'zero_grad': list(),
                     'backward': list(), 'step': list()}
 
 for epoch in range(start_epoch, EPOCHS):
+    print("LEARNING RATE {:.6f}".format(optimizer.param_groups[0]['lr']))
     for batch in range(start_batch, len(batch_json_lists)):
         save_checkpoint(epoch, EPOCHS, batch, len(batch_json_lists),
                         model, optimizer, scheduler)
