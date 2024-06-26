@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 from configs import JSON_PATH, JPG_PATH
 from utils import json_parser
-from img2vlc.img2vlc_utils import get_vlc_map
+from img2vlc.img2vlc_utils import get_vlc2tok
 
 
 class MVDataset(Dataset):
@@ -20,6 +20,7 @@ class MVDataset(Dataset):
         if is_train:
             transforms.append(tt.RandomHorizontalFlip(0.5))
         self.transforms = tt.Compose(transforms)
+        self.vlc2tok = get_vlc2tok()
 
     def __len__(self):
         return len(self.json_list)
@@ -34,12 +35,10 @@ class MVDataset(Dataset):
 
         boxes = torch.tensor(boxes, device=self.device, dtype=torch.float32)
 
-        vlc_map = get_vlc_map()
-
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
 
         target = {'boxes': boxes,
-                  'labels': torch.tensor([vlc_map[i] for i in vlcs],
+                  'labels': torch.tensor([self.vlc2tok[i] for i in vlcs],
                                          dtype=torch.int64,
                                          device=self.device),
                   'area': area,

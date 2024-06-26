@@ -9,9 +9,9 @@ from torchvision.transforms.v2.functional import to_pil_image
 
 from MVDataset import MVDataset
 from configs import DATA_PATH, JSON_PATH
-from utils import visualize, DEVICE
+from utils import visualize, DEVICE, get_tok2vlc
 from img2vlc.img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
-from img2vlc.img2vlc_utils import get_vlc_map, get_model, collate_fn, load_model, load_checkpoint
+from img2vlc.img2vlc_utils import get_model, collate_fn, load_model, load_checkpoint
 
 model = load_model(get_model(IMG2VLC_VERSION, COORD_CONV_2D_VERSION, DEVICE), load_checkpoint(DEVICE))
 model.eval()
@@ -25,7 +25,7 @@ json_list = random.sample([file
 dataset = MVDataset(DATA_PATH, json_list, DEVICE, False)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
-vlc_map = {v: k for k, v in get_vlc_map().items()}
+tok2vlc = get_tok2vlc()
 
 prediction_list = []
 image_list = []
@@ -41,13 +41,13 @@ for test_data_index, (images, targets) in enumerate(dataloader):
         prediction_list.append({
             'boxes': prediction['boxes'].cpu().detach().numpy(),
             'scores': prediction['scores'].cpu().detach().numpy(),
-            'vlcs': [vlc_map[label]
+            'vlcs': [tok2vlc[label]
                      for label in prediction['labels'].cpu().detach().numpy()]
         })
         image_list.append(cv2.cvtColor(np.array(to_pil_image(image)), cv2.COLOR_RGB2BGR))
         target_list.append({
             'boxes': target['boxes'].cpu().detach().numpy(),
-            'vlcs': [vlc_map[label]
+            'vlcs': [tok2vlc[label]
                      for label in target['labels'].cpu().detach().numpy()]
         })
 

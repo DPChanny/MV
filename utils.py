@@ -94,8 +94,12 @@ class Timer:
         self.last_start = time.time()
 
 
-def get_vlc_map():
-    with open(os.path.join(PROJECT_PATH, "vlc_map.json"), "r") as file:
+def get_vlc2tok():
+    with open(os.path.join(PROJECT_PATH, "vlc2tok.json"), "r") as file:
         data = json.load(file)
 
     return data
+
+
+def get_tok2vlc():
+    return {v: k for k, v in get_vlc2tok().items()}
