@@ -10,7 +10,7 @@ from utils import json_parser
 from img2vlc.img2vlc_utils import get_vlc2tok
 
 
-class MVDataset(Dataset):
+class Img2VlcDataset(Dataset):
     def __init__(self, data_path, json_list, device, is_train):
         self.data_path = data_path
         self.json_list = json_list

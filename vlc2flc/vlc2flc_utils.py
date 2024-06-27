@@ -4,8 +4,9 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn import Transformer
+from torch.nn.utils.rnn import pad_sequence
 
-from vlc2flc.vlc2flc_configs import PAD_INDEX
+from vlc2flc.vlc2flc_configs import PAD_INDEX, SOS_INDEX, EOS_INDEX
 
 
 class TargetPE(nn.Module):
@@ -111,3 +112,21 @@ def create_mask(src, tgt, device):
     tgt_padding_mask = (tgt == PAD_INDEX).transpose(0, 1)
 
     return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
+
+
+def tensor_transform(token_ids):
+    return torch.cat((torch.tensor([SOS_INDEX]),
+                      torch.tensor(token_ids),
+                      torch.tensor([EOS_INDEX])))
+
+
+def collate_fn(batch):
+    src_batch, tgt_batch = [], []
+    for src_sample, tgt_sample in batch:
+        src_batch.append(tensor_transform(src_sample))
+        tgt_batch.append(tensor_transform(tgt_sample))
+
+    src_batch = pad_sequence(src_batch, padding_value=PAD_INDEX)
+    tgt_batch = pad_sequence(tgt_batch, padding_value=PAD_INDEX)
+
+    return src_batch, tgt_batch

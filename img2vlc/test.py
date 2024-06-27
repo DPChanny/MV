@@ -7,7 +7,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torchvision.transforms.v2.functional import to_pil_image
 
-from MVDataset import MVDataset
+from img2vlc.Img2VlcDataset import Img2VlcDataset
 from configs import DATA_PATH, JSON_PATH
 from utils import visualize, DEVICE, get_tok2vlc
 from img2vlc.img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
@@ -22,7 +22,7 @@ json_list = random.sample([file
                            for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))
                            if file.endswith(".json")], test_data_count)
 
-dataset = MVDataset(DATA_PATH, json_list, DEVICE, False)
+dataset = Img2VlcDataset(DATA_PATH, json_list, DEVICE, False)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
 tok2vlc = get_tok2vlc()

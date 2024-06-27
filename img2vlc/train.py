@@ -4,7 +4,7 @@ import time
 import torch
 from torch.utils.data import DataLoader
 
-from MVDataset import MVDataset
+from img2vlc.Img2VlcDataset import Img2VlcDataset
 from configs import DATA_PATH, JSON_PATH
 from utils import Timer, DEVICE
 from img2vlc.img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
@@ -72,7 +72,7 @@ for epoch in range(start_epoch, EPOCHS):
         save_checkpoint(epoch, EPOCHS, batch, len(batch_json_lists),
                         model, optimizer, scheduler)
 
-        dataset = MVDataset(DATA_PATH, batch_json_lists[batch], DEVICE, True)
+        dataset = Img2VlcDataset(DATA_PATH, batch_json_lists[batch], DEVICE, True)
         dataloader = DataLoader(dataset, shuffle=True, batch_size=MINI_BATCH_SIZE, collate_fn=collate_fn)
 
         timer.start()
