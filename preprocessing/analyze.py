@@ -8,6 +8,7 @@ from utils import json_parser
 json_list = [file for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH))
              if file.endswith(".json")]
 
+vlc_count = {}
 vlc_lens = []
 flc_lens = []
 widths = []
@@ -23,6 +24,10 @@ for index, json in enumerate(json_list):
 
     vlc_lens.append(len(vlcs))
     flc_lens.append(len(flcs))
+    for vlc in vlcs:
+        if vlc not in vlc_count:
+            vlc_count[vlc] = 0
+        vlc_count[vlc] += 1
 
     image = Image.open(os.path.join(DATA_PATH, JPG_PATH, data_name + ".jpg")).convert("RGB")
     widths.append(image.width)
@@ -33,6 +38,7 @@ print(max(flc_lens), min(flc_lens), sum(flc_lens) / len(flc_lens))
 print(max(vlc_lens), min(vlc_lens), sum(vlc_lens) / len(vlc_lens))
 print(max(widths), min(widths), sum(widths) / len(widths))
 print(max(heights), min(heights), sum(heights) / len(heights))
+print(vlc_count)
 
 # 115 7 34.30829
 # 64 5 18.56227
