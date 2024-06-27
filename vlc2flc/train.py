@@ -1,31 +1,66 @@
+import os.path
+import time
+
 import torch
-from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader
 
-from vlc2flc.vlc2flc_configs import EOS_INDEX, SOS_INDEX, PAD_INDEX
+from img2vlc.Img2VlcDataset import Img2VlcDataset
+from configs import DATA_PATH, JSON_PATH
+from utils import Timer, DEVICE, get_vlc2tok, get_flc2tok
+from vlc2flc.Vlc2FlcDataset import Vlc2FlcDataset
+from vlc2flc.vlc2flc_utils import Seq2SeqTransformer, collate_fn, create_mask
 
+EPOCHS = 100
+EMB_SIZE = 128
+LEARNING_RATE = 1e-3
+ETA_MIN = 1e-6
+VERBOSE = 50
+BATCH_SIZE = 2000
+MINI_BATCH_SIZE = 2
+WEIGHT_DECAY = 0.0005
 
-def train_epoch(model, optimizer):
-    model.train()
-    losses = 0
+model = Seq2SeqTransformer(EMB_SIZE, 4,
+                           10000, 10000,
+                           6, 6,
+                           len(get_vlc2tok()), len(get_flc2tok()), device=DEVICE)
+model.train()
 
+optimizer = torch.optim.AdamW(params=model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
-    for src, tgt in train_dataloader:
-        src = src.to(DEVICE)
-        tgt = tgt.to(DEVICE)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS - 1, eta_min=ETA_MIN)
 
-        tgt_input = tgt[:-1, :]
+json_list = [file for file in os.listdir(os.path.join(DATA_PATH, JSON_PATH)) if file.endswith(".json")]
+batch_json_lists = []
+for index in range(0, len(json_list), BATCH_SIZE):
+    batch_json_lists.append(json_list[index:min(index + BATCH_SIZE, len(json_list))])
 
-        src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = create_mask(src, tgt_input)
+model.to(DEVICE)
 
-        logits = model(src, tgt_input, src_mask, tgt_mask,src_padding_mask, tgt_padding_mask, src_padding_mask)
+for epoch in range(EPOCHS):
+    print("LEARNING RATE {:.6f}".format(optimizer.param_groups[0]['lr']))
+    for batch in range(len(batch_json_lists)):
+        dataset = Vlc2FlcDataset(DATA_PATH, batch_json_lists[batch], DEVICE)
+        dataloader = DataLoader(dataset, shuffle=True, batch_size=MINI_BATCH_SIZE, collate_fn=collate_fn)
 
-        optimizer.zero_grad()
+        for mini_batch_data_index, (src, tgt, boxes) in enumerate(dataloader):
+            optimizer.zero_grad()
 
-        tgt_out = tgt[1:, :]
-        loss = loss_fn(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
-        loss.backward()
+            src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = create_mask(src, tgt, device=DEVICE)
 
-        optimizer.step()
-        losses += loss.item()
+            loss = model(src, boxes, tgt, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
 
-    return losses / len(list(train_dataloader))
+            print(loss)
+
+            total_loss = torch.sum(torch.stack([value for value in loss.values()]))
+            total_loss.backward()
+
+            optimizer.step()
+
+            print("EPOCH {}/{} | BATCH {}/{} | PROGRESS {}/{}".format(epoch, EPOCHS, batch, len(batch_json_lists),
+                                                                      mini_batch_data_index, len(dataloader)))
+
+        del dataset, dataloader
+
+    start_batch = 0
+
+    scheduler.step()

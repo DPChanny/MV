@@ -103,3 +103,12 @@ def get_vlc2tok():
 
 def get_tok2vlc():
     return {v: k for k, v in get_vlc2tok().items()}
+
+
+def get_flc2tok():
+    vlc2tok = get_vlc2tok()
+    vlc2tok['{'] = len(vlc2tok)
+    vlc2tok['}'] = len(vlc2tok)
+    vlc2tok['^'] = len(vlc2tok)
+
+    return vlc2tok

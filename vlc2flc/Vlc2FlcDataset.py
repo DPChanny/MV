@@ -1,34 +1,29 @@
 import os.path
 
 import torch
-import torchvision.transforms.v2 as tt
-from PIL import Image
 from torch.utils.data import Dataset
 
-from configs import JSON_PATH, JPG_PATH
-from utils import json_parser
+from configs import JSON_PATH
+from utils import json_parser, get_flc2tok
 from img2vlc.img2vlc_utils import get_vlc2tok
+from vlc2flc.vlc2flc_utils import tensor_transform
 
 
 class Vlc2FlcDataset(Dataset):
-    def __init__(self, data_path, json_list, device, is_train):
+    def __init__(self, data_path, json_list, device):
         self.data_path = data_path
         self.json_list = json_list
         self.device = device
         self.vlc2tok = get_vlc2tok()
+        self.flc2tok = get_flc2tok()
 
     def __len__(self):
         return len(self.json_list)
 
     def __getitem__(self, data_index):
-        data_name = os.path.splitext(self.json_list[data_index])[0]
-        flcs, vlcs, _ = json_parser(os.path.join(self.data_path,
-                                                 JSON_PATH,
-                                                 self.json_list[data_index]))
+        flcs, vlcs, boxes = json_parser(os.path.join(self.data_path, JSON_PATH, self.json_list[data_index]))
+        src = tensor_transform([self.vlc2tok[vlc] for vlc in vlcs], self.device)
+        tgt = tensor_transform([self.flc2tok[flc] for flc in flcs], self.device)
+        boxes = torch.tensor(boxes, device=self.device, dtype=torch.int32)
 
-
-
-        image, target = self.transforms(image, target)
-        image = image.to(self.device)
-
-        return image, target
+        return src, tgt, boxes

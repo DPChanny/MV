@@ -10,12 +10,12 @@ from vlc2flc.vlc2flc_configs import PAD_INDEX, SOS_INDEX, EOS_INDEX
 
 
 class TargetPE(nn.Module):
-    def __init__(self, emb_size: int, dropout: float, max_len: int = 500):
+    def __init__(self, emb_size: int, dropout: float, device, max_len: int = 500):
         super(TargetPE, self).__init__()
 
-        den = torch.exp(-torch.arange(0, emb_size, 2) * math.log(10000) / emb_size)
-        pos = torch.arange(0, max_len).reshape(max_len, 1)
-        pos_embedding = torch.zeros((max_len, emb_size))
+        den = torch.exp(-torch.arange(0, emb_size, 2, device=device) * math.log(10000) / emb_size)
+        pos = torch.arange(0, max_len, device=device).reshape(max_len, 1)
+        pos_embedding = torch.zeros((max_len, emb_size), device=device)
         pos_embedding[:, 0::2] = torch.sin(pos * den)
         pos_embedding[:, 1::2] = torch.cos(pos * den)
         pos_embedding = pos_embedding.unsqueeze(-2)
@@ -28,15 +28,16 @@ class TargetPE(nn.Module):
 
 
 class SourcePE(nn.Module):
-    def __init__(self, emb_size, max_width, max_height, dropout):
+    def __init__(self, emb_size, max_width, max_height, dropout, device):
+        self.device = device
         super(SourcePE, self).__init__()
 
-        den = torch.exp(-torch.arange(0, emb_size / 4) * math.log(10000) / emb_size / 4)
+        den = torch.exp(-torch.arange(0, emb_size / 4, device=device) * math.log(10000) / emb_size / 4)
 
-        x_p = torch.arange(0, max_width).reshape(max_width, 1)
+        x_p = torch.arange(0, max_width, device=device).reshape(max_width, 1)
         x_pe = torch.sin(x_p * den)
 
-        y_p = torch.arange(0, max_height).reshape(max_height, 1)
+        y_p = torch.arange(0, max_height, device=device).reshape(max_height, 1)
         y_pe = torch.sin(y_p * den)
 
         self.register_buffer('x_pe', x_pe)
@@ -47,7 +48,7 @@ class SourcePE(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def get_pe(self, src_boxes):
-        pe = torch.zeros((len(src_boxes), self.emb_size), requires_grad=False)
+        pe = torch.zeros((len(src_boxes), self.emb_size), device=self.device, requires_grad=False)
         for index, src_box in enumerate(src_boxes):
             pe[index, 0::4] = self.x_pe[src_box[0]]
             pe[index, 1::4] = self.y_pe[src_box[1]]
@@ -71,7 +72,7 @@ class TokenEmbedding(nn.Module):
 class Seq2SeqTransformer(nn.Module):
     def __init__(self, emb_size, nhead, max_width, max_height,
                  num_encoder_layers, num_decoder_layers,
-                 src_vocab_size, tgt_vocab_size,
+                 src_vocab_size, tgt_vocab_size, device,
                  dim_feedforward=512, dropout=0.1):
         super(Seq2SeqTransformer, self).__init__()
         self.transformer = Transformer(d_model=emb_size,
@@ -83,15 +84,15 @@ class Seq2SeqTransformer(nn.Module):
         self.generator = nn.Linear(emb_size, tgt_vocab_size)
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
-        self.src_pe = SourcePE(emb_size, max_width, max_height, dropout=dropout)
-        self.tgt_pe = TargetPE(emb_size, dropout=dropout)
+        self.src_pe = SourcePE(emb_size, max_width, max_height, dropout=dropout, device=device)
+        self.tgt_pe = TargetPE(emb_size, dropout=dropout, device=device)
 
     def forward(self, src, src_boxes, tgt, src_mask, tgt_mask,
-                src_padding_mask, tgt_padding_mask, memory_key_padding_mask):
-        src_emb = self.src_pe(self.src_tok_emb(src, src_boxes))
+                src_padding_mask, tgt_padding_mask):
+        src_emb = self.src_pe(self.src_tok_emb(src), src_boxes)
         tgt_emb = self.tgt_pe(self.tgt_tok_emb(tgt))
         outs = self.transformer(src_emb, tgt_emb, src_mask, tgt_mask, None,
-                                src_padding_mask, tgt_padding_mask, memory_key_padding_mask)
+                                src_padding_mask, tgt_padding_mask)
         return self.generator(outs)
 
 
@@ -114,19 +115,20 @@ def create_mask(src, tgt, device):
     return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
 
 
-def tensor_transform(token_ids):
-    return torch.cat((torch.tensor([SOS_INDEX]),
-                      torch.tensor(token_ids),
-                      torch.tensor([EOS_INDEX])))
+def tensor_transform(tokens, device):
+    return torch.cat((torch.tensor([SOS_INDEX], device=device),
+                      torch.tensor(tokens, device=device),
+                      torch.tensor([EOS_INDEX], device=device)))
 
 
 def collate_fn(batch):
-    src_batch, tgt_batch = [], []
-    for src_sample, tgt_sample in batch:
-        src_batch.append(tensor_transform(src_sample))
-        tgt_batch.append(tensor_transform(tgt_sample))
+    src_list, tgt_list, boxes_list = [], [], []
+    for src, tgt, boxes in batch:
+        src_list.append(src)
+        tgt_list.append(tgt)
+        boxes_list.append(boxes)
 
-    src_batch = pad_sequence(src_batch, padding_value=PAD_INDEX)
-    tgt_batch = pad_sequence(tgt_batch, padding_value=PAD_INDEX)
+    src_list = pad_sequence(src_list, padding_value=PAD_INDEX)
+    tgt_list = pad_sequence(tgt_list, padding_value=PAD_INDEX)
 
-    return src_batch, tgt_batch
+    return src_list, tgt_list, boxes_list
