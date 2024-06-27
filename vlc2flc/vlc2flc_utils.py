@@ -1,4 +1,5 @@
 import math
+
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -7,12 +8,10 @@ from torch.nn import Transformer
 from vlc2flc.vlc2flc_configs import PAD_INDEX
 
 
-class PositionalEncoding(nn.Module):
-    def __init__(self,
-                 emb_size: int,
-                 dropout: float,
-                 max_len: int = 5000):
-        super(PositionalEncoding, self).__init__()
+class TargetPE(nn.Module):
+    def __init__(self, emb_size: int, dropout: float, max_len: int = 500):
+        super(TargetPE, self).__init__()
+
         den = torch.exp(-torch.arange(0, emb_size, 2) * math.log(10000) / emb_size)
         pos = torch.arange(0, max_len).reshape(max_len, 1)
         pos_embedding = torch.zeros((max_len, emb_size))
@@ -23,8 +22,39 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.register_buffer('pos_embedding', pos_embedding)
 
-    def forward(self, token_embedding: Tensor):
-        return self.dropout(token_embedding + self.pos_embedding[:token_embedding.size(0), :])
+    def forward(self, tgt_embedding):
+        return self.dropout(tgt_embedding + self.pos_embedding[:tgt_embedding.size(0), :])
+
+
+class SourcePE(nn.Module):
+    def __init__(self, emb_size, max_width, max_height, dropout):
+        super(SourcePE, self).__init__()
+
+        den = torch.exp(-torch.arange(0, emb_size / 4) * math.log(10000) / emb_size / 4)
+
+        x_p = torch.arange(0, max_width).reshape(max_width, 1)
+        x_pe = torch.sin(x_p * den)
+
+        y_p = torch.arange(0, max_height).reshape(max_height, 1)
+        y_pe = torch.sin(y_p * den)
+
+        self.register_buffer('x_pe', x_pe)
+        self.register_buffer('y_pe', y_pe)
+
+        self.emb_size = emb_size
+
+        self.dropout = nn.Dropout(dropout)
+
+    def get_pe(self, src_boxes):
+        pe = torch.zeros((len(src_boxes), self.emb_size), requires_grad=False)
+        for index, src_box in enumerate(src_boxes):
+            pe[index, 0::4] = self.x_pe[src_box[0]]
+            pe[index, 1::4] = self.y_pe[src_box[1]]
+            pe[index, 2::4] = self.x_pe[src_box[2]]
+            pe[index, 3::4] = self.y_pe[src_box[3]]
+
+    def forward(self, src_embedding, src_boxes):
+        return self.dropout(src_embedding + self.get_pe(src_boxes))
 
 
 class TokenEmbedding(nn.Module):
@@ -38,15 +68,10 @@ class TokenEmbedding(nn.Module):
 
 
 class Seq2SeqTransformer(nn.Module):
-    def __init__(self,
-                 num_encoder_layers: int,
-                 num_decoder_layers: int,
-                 emb_size: int,
-                 nhead: int,
-                 src_vocab_size: int,
-                 tgt_vocab_size: int,
-                 dim_feedforward: int = 512,
-                 dropout: float = 0.1):
+    def __init__(self, emb_size, nhead, max_width, max_height,
+                 num_encoder_layers, num_decoder_layers,
+                 src_vocab_size, tgt_vocab_size,
+                 dim_feedforward=512, dropout=0.1):
         super(Seq2SeqTransformer, self).__init__()
         self.transformer = Transformer(d_model=emb_size,
                                        nhead=nhead,
@@ -57,28 +82,16 @@ class Seq2SeqTransformer(nn.Module):
         self.generator = nn.Linear(emb_size, tgt_vocab_size)
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
-        self.positional_encoding = PositionalEncoding(
-            emb_size, dropout=dropout)
+        self.src_pe = SourcePE(emb_size, max_width, max_height, dropout=dropout)
+        self.tgt_pe = TargetPE(emb_size, dropout=dropout)
 
-    def forward(self,
-                src: Tensor,
-                trg: Tensor,
-                src_mask: Tensor,
-                tgt_mask: Tensor,
-                src_padding_mask: Tensor,
-                tgt_padding_mask: Tensor,
-                memory_key_padding_mask: Tensor):
-        src_emb = self.positional_encoding(self.src_tok_emb(src))
-        tgt_emb = self.positional_encoding(self.tgt_tok_emb(trg))
+    def forward(self, src, src_boxes, tgt, src_mask, tgt_mask,
+                src_padding_mask, tgt_padding_mask, memory_key_padding_mask):
+        src_emb = self.src_pe(self.src_tok_emb(src, src_boxes))
+        tgt_emb = self.tgt_pe(self.tgt_tok_emb(tgt))
         outs = self.transformer(src_emb, tgt_emb, src_mask, tgt_mask, None,
                                 src_padding_mask, tgt_padding_mask, memory_key_padding_mask)
         return self.generator(outs)
-
-    def encode(self, src: Tensor, src_mask: Tensor):
-        return self.transformer.encoder(self.positional_encoding(self.src_tok_emb(src)), src_mask)
-
-    def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
-        return self.transformer.decoder(self.positional_encoding(self.tgt_tok_emb(tgt)), memory, tgt_mask)
 
 
 def generate_square_subsequent_mask(sz, device):

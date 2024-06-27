@@ -27,9 +27,9 @@ class MVDataset(Dataset):
 
     def __getitem__(self, data_index):
         data_name = os.path.splitext(self.json_list[data_index])[0]
-        vlcs, boxes = json_parser(os.path.join(self.data_path,
-                                               JSON_PATH,
-                                               self.json_list[data_index]))
+        _, vlcs, boxes = json_parser(os.path.join(self.data_path,
+                                                  JSON_PATH,
+                                                  self.json_list[data_index]))
 
         image = Image.open(os.path.join(self.data_path, JPG_PATH, data_name + ".jpg")).convert("RGB")
 

@@ -14,7 +14,7 @@ def json_parser(json_path):
     with open(json_path, "r") as file:
         data = json.load(file)
 
-    return (data['vlcs'],
+    return (data['flcs'], data['vlcs'],
             [(x_min, y_min, x_max, y_max) for x_min, y_min, x_max, y_max
              in zip(data['x_mins'], data['y_mins'], data['x_maxs'], data['y_maxs'])])
 
@@ -22,12 +22,6 @@ def json_parser(json_path):
 def get_image(image, prediction, target, iou_threshold):
     alpha = 1
     image = image.copy()
-    cv2.putText(image, "{} x {} ({:.3f} ~ {:.3f})".format(image.shape[0], image.shape[1],
-                                                          iou_threshold[0], iou_threshold[1]),
-                (5, 20),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5, (0, 0, 0, 255), 1)
-
     if target is not None:
         for vlc, box in zip(target['vlcs'], target['boxes']):
             overlay = image.copy()
@@ -52,17 +46,23 @@ def get_image(image, prediction, target, iou_threshold):
 
 
 def visualize(image_list, prediction_list, target_list=None):
-    cv2.namedWindow('image', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('window', cv2.WINDOW_AUTOSIZE)
 
     iou_threshold = [0.0, 1.0]
     iou_threshold_sensitivity = 0.025
     image_index = 0
 
     while True:
-        cv2.imshow('image', get_image(image_list[image_index],
-                                      prediction_list[image_index],
-                                      target_list[image_index] if target_list is not None else None,
-                                      iou_threshold))
+        cv2.imshow('window', get_image(image_list[image_index],
+                                       prediction_list[image_index],
+                                       target_list[image_index] if target_list is not None else None,
+                                       iou_threshold))
+
+        cv2.setWindowTitle('window', "Prediction Result({}/{}): {} x {} ({:.3f} ~ {:.3f})".format(
+            image_index + 1, len(image_list),
+            image_list[image_index].shape[0], image_list[image_index].shape[1],
+            iou_threshold[0], iou_threshold[1]))
+
         key = cv2.waitKey(0)
 
         if key == ord('Q') or key == ord('q'):
