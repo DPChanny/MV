@@ -1,4 +1,5 @@
 import math
+import os
 
 import torch
 import torch.nn as nn
@@ -6,7 +7,8 @@ from torch import Tensor
 from torch.nn import Transformer
 from torch.nn.utils.rnn import pad_sequence
 
-from vlc2flc.vlc2flc_configs import PAD_INDEX, SOS_INDEX, EOS_INDEX
+from utils import get_flc2tok
+from vlc2flc.vlc2flc_configs import PAD_INDEX, SOS_INDEX, EOS_INDEX, MODEL_PATH
 
 
 class TargetPE(nn.Module):
@@ -34,10 +36,10 @@ class SourcePE(nn.Module):
 
         den = torch.exp(-torch.arange(0, emb_size / 4, device=device) * math.log(10000) / emb_size / 4)
 
-        x_p = torch.arange(0, max_width, device=device).reshape(max_width, 1)
+        x_p = torch.arange(0, max_width + 1, device=device).reshape(max_width + 1, 1)
         x_pe = torch.sin(x_p * den)
 
-        y_p = torch.arange(0, max_height, device=device).reshape(max_height, 1)
+        y_p = torch.arange(0, max_height + 1, device=device).reshape(max_height + 1, 1)
         y_pe = torch.sin(y_p * den)
 
         self.register_buffer('x_pe', x_pe)
@@ -47,13 +49,17 @@ class SourcePE(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def get_pe(self, src_boxes):
-        pe = torch.zeros((len(src_boxes), self.emb_size), device=self.device, requires_grad=False)
-        for index, src_box in enumerate(src_boxes):
-            pe[index, 0::4] = self.x_pe[src_box[0]]
-            pe[index, 1::4] = self.y_pe[src_box[1]]
-            pe[index, 2::4] = self.x_pe[src_box[2]]
-            pe[index, 3::4] = self.y_pe[src_box[3]]
+    def get_pe(self, src_boxes_list):
+        pe = torch.zeros((len(src_boxes_list[0]), len(src_boxes_list), self.emb_size),
+                         device=self.device, requires_grad=False)
+        for index, src_boxes in enumerate(src_boxes_list):
+            for box_index, box in enumerate(src_boxes):
+                pe[box_index, index, 0::4] = self.x_pe[int(box[0])]
+                pe[box_index, index, 1::4] = self.y_pe[int(box[1])]
+                pe[box_index, index, 2::4] = self.x_pe[int(box[2])]
+                pe[box_index, index, 3::4] = self.y_pe[int(box[3])]
+
+        return pe
 
     def forward(self, src_embedding, src_boxes):
         return self.dropout(src_embedding + self.get_pe(src_boxes))
@@ -80,7 +86,8 @@ class Seq2SeqTransformer(nn.Module):
                                        num_encoder_layers=num_encoder_layers,
                                        num_decoder_layers=num_decoder_layers,
                                        dim_feedforward=dim_feedforward,
-                                       dropout=dropout)
+                                       dropout=dropout,
+                                       device=device)
         self.generator = nn.Linear(emb_size, tgt_vocab_size)
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
@@ -89,11 +96,17 @@ class Seq2SeqTransformer(nn.Module):
 
     def forward(self, src, src_boxes, tgt, src_mask, tgt_mask,
                 src_padding_mask, tgt_padding_mask):
-        src_emb = self.src_pe(self.src_tok_emb(src), src_boxes)
         tgt_emb = self.tgt_pe(self.tgt_tok_emb(tgt))
+        src_emb = self.src_pe(self.src_tok_emb(src), src_boxes)
         outs = self.transformer(src_emb, tgt_emb, src_mask, tgt_mask, None,
                                 src_padding_mask, tgt_padding_mask)
         return self.generator(outs)
+
+    def encode(self, src: Tensor, src_boxes, src_mask: Tensor):
+        return self.transformer.encoder(self.src_pe(self.src_tok_emb(src), src_boxes), src_mask)
+
+    def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
+        return self.transformer.decoder(self.tgt_pe(self.tgt_tok_emb(tgt)), memory, tgt_mask)
 
 
 def generate_square_subsequent_mask(sz, device):
@@ -121,14 +134,101 @@ def tensor_transform(tokens, device):
                       torch.tensor([EOS_INDEX], device=device)))
 
 
+def get_padding_boxes(boxes_list, max_len):
+    for index, boxes in enumerate(boxes_list):
+        boxes_list[index] = torch.cat((torch.zeros((1, 4)),
+                                       boxes,
+                                       torch.tensor([[10000, 10000, 10000, 10000]]),
+                                       torch.zeros((max_len - len(boxes), 4))))
+
+    return boxes_list
+
+
 def collate_fn(batch):
     src_list, tgt_list, boxes_list = [], [], []
+    max_len = 0
     for src, tgt, boxes in batch:
         src_list.append(src)
         tgt_list.append(tgt)
         boxes_list.append(boxes)
+        max_len = max(max_len, len(boxes))
 
     src_list = pad_sequence(src_list, padding_value=PAD_INDEX)
     tgt_list = pad_sequence(tgt_list, padding_value=PAD_INDEX)
+    boxes_list = get_padding_boxes(boxes_list, max_len)
 
     return src_list, tgt_list, boxes_list
+
+
+def load_checkpoint(device):
+    if os.path.exists(os.path.join(MODEL_PATH,
+                                   "checkpoint.pth")):
+        checkpoint = torch.load(os.path.join(MODEL_PATH,
+                                             "checkpoint.pth"),
+                                map_location=device)
+    else:
+        checkpoint = None
+
+    return checkpoint
+
+
+def save_checkpoint(epoch, total_epoch, batch, total_batch, model, optimizer, scheduler):
+    if not os.path.exists(os.path.join(MODEL_PATH)):
+        os.makedirs(os.path.join(MODEL_PATH))
+
+    values = {'start_epoch': epoch,
+              'start_batch': batch,
+              'model': model.state_dict(),
+              'optimizer': optimizer.state_dict(),
+              'scheduler': scheduler.state_dict()}
+
+    torch.save(values, os.path.join(MODEL_PATH,
+                                    "{}-{}_{}-{}.pth".format(epoch, total_epoch,
+                                                             batch, total_batch)))
+    torch.save(values, os.path.join(MODEL_PATH,
+                                    "checkpoint.pth".format(epoch, total_epoch,
+                                                            batch, total_batch)))
+
+
+def get_model(device, log_model=True):
+    model = Seq2SeqTransformer(128, 4, 10000, 10000, 4, 4,
+                               len(get_flc2tok()) + 4, len(get_flc2tok()) + 4, device=device)
+
+    model.to(device)
+
+    if log_model:
+        print(model)
+
+    return model
+
+
+def load_model(model, checkpoint):
+    if checkpoint is not None:
+        model.load_state_dict(checkpoint['model'])
+
+    return model
+
+
+def load_optimizer(optimizer, checkpoint):
+    if checkpoint is not None:
+        optimizer.load_state_dict(checkpoint['optimizer'])
+
+    return optimizer
+
+
+def load_starts(checkpoint):
+    if checkpoint is not None:
+        start_epoch = checkpoint['start_epoch']
+        start_batch = checkpoint['start_batch']
+    else:
+        start_epoch = 0
+        start_batch = 0
+
+    return start_epoch, start_batch
+
+
+def load_scheduler(scheduler, checkpoint):
+    if checkpoint is not None:
+        scheduler.load_state_dict(checkpoint['scheduler'])
+
+    return scheduler

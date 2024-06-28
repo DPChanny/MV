@@ -107,8 +107,11 @@ def get_tok2vlc():
 
 def get_flc2tok():
     vlc2tok = get_vlc2tok()
-    vlc2tok['{'] = len(vlc2tok)
-    vlc2tok['}'] = len(vlc2tok)
-    vlc2tok['^'] = len(vlc2tok)
+    vlc2tok['{'] = len(vlc2tok) + 1
+    vlc2tok['}'] = len(vlc2tok) + 1
+    vlc2tok['['] = len(vlc2tok) + 1
+    vlc2tok[']'] = len(vlc2tok) + 1
+    vlc2tok['^'] = len(vlc2tok) + 1
+    vlc2tok['_'] = len(vlc2tok) + 1
 
     return vlc2tok
