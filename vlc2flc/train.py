@@ -8,8 +8,8 @@ from configs import DATA_PATH, JSON_PATH
 from utils import DEVICE, Timer
 from vlc2flc.Vlc2FlcDataset import Vlc2FlcDataset
 from vlc2flc.vlc2flc_configs import PAD_INDEX
-from vlc2flc.vlc2flc_utils import (collate_fn, create_mask, save_checkpoint,
-                                   get_model, load_model, load_checkpoint, load_optimizer, load_starts, load_scheduler)
+from vlc2flc.vlc2flc_utils import (collate_fn, create_mask, load_checkpoint, save_checkpoint,
+                                   get_model, load_model, load_optimizer, load_starts, load_scheduler)
 
 EPOCHS = 10
 LEARNING_RATE = 1e-3
@@ -122,3 +122,6 @@ for epoch in range(start_epoch, EPOCHS):
     start_batch = 0
 
     scheduler.step()
+
+save_checkpoint(EPOCHS, EPOCHS, len(batch_json_lists), len(batch_json_lists),
+                model, optimizer, scheduler)
