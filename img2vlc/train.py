@@ -119,3 +119,6 @@ for epoch in range(start_epoch, EPOCHS):
     start_batch = 0
 
     scheduler.step()
+
+save_checkpoint(EPOCHS, EPOCHS, len(batch_json_lists), len(batch_json_lists),
+                model, optimizer, scheduler)
