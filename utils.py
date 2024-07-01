@@ -3,11 +3,8 @@ import os
 import time
 
 import cv2
-import torch
 
 from configs import PROJECT_PATH
-
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def json_parser(json_path):
@@ -96,9 +93,9 @@ class Timer:
 
 def get_vlc2tok():
     with open(os.path.join(PROJECT_PATH, "vlc2tok.json"), "r") as file:
-        data = json.load(file)
+        vlc2tok = json.load(file)
 
-    return data
+    return vlc2tok
 
 
 def get_tok2vlc():
@@ -107,11 +104,26 @@ def get_tok2vlc():
 
 def get_flc2tok():
     vlc2tok = get_vlc2tok()
+
     vlc2tok['{'] = len(vlc2tok) + 1
     vlc2tok['}'] = len(vlc2tok) + 1
     vlc2tok['['] = len(vlc2tok) + 1
     vlc2tok[']'] = len(vlc2tok) + 1
     vlc2tok['^'] = len(vlc2tok) + 1
     vlc2tok['_'] = len(vlc2tok) + 1
+    vlc2tok['<PAD>'] = len(vlc2tok) + 1
+    vlc2tok['<SOS>'] = len(vlc2tok) + 1
+    vlc2tok['<EOS>'] = len(vlc2tok) + 1
 
     return vlc2tok
+
+
+def get_tok2flc():
+    return {v: k for k, v in get_flc2tok().items()}
+
+
+_flc2tok = get_flc2tok()
+
+PAD_INDEX = _flc2tok['<PAD>']
+SOS_INDEX = _flc2tok['<SOS>']
+EOS_INDEX = _flc2tok['<EOS>']

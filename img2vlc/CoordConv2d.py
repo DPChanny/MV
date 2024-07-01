@@ -18,8 +18,8 @@ class CoordConv2d(conv.Conv2d):
         b = images.shape[0]
         for _, image in enumerate(images):
             h, w = images.shape[2:]
-            h_range = torch.arange(h, dtype=torch.float32, device=self.device) / (h - 1)
-            w_range = torch.arange(w, dtype=torch.float32, device=self.device) / (w - 1)
+            h_range = torch.arange(h).to(self.device).type(torch.float32) / (h - 1)
+            w_range = torch.arange(w).to(self.device).type(torch.float32) / (w - 1)
 
             h_channel = h_range.repeat(1, w, 1).transpose(1, 2)
             w_channel = w_range.repeat(1, h, 1)

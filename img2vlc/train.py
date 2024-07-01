@@ -5,8 +5,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from img2vlc.Img2VlcDataset import Img2VlcDataset
-from configs import DATA_PATH, JSON_PATH
-from utils import Timer, DEVICE
+from configs import DATA_PATH, JSON_PATH, DEVICE
+from utils import Timer
 from img2vlc.img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
 from img2vlc.img2vlc_utils import (collate_fn, get_model, load_model, save_checkpoint, load_checkpoint,
                                    load_optimizer, load_starts,  load_scheduler)

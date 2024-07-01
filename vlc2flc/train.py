@@ -4,14 +4,13 @@ import time
 import torch
 from torch.utils.data import DataLoader
 
-from configs import DATA_PATH, JSON_PATH
-from utils import DEVICE, Timer
+from configs import DATA_PATH, JSON_PATH, DEVICE
+from utils import Timer, PAD_INDEX
 from vlc2flc.Vlc2FlcDataset import Vlc2FlcDataset
-from vlc2flc.vlc2flc_configs import PAD_INDEX
 from vlc2flc.vlc2flc_utils import (collate_fn, create_mask, load_checkpoint, save_checkpoint,
                                    get_model, load_model, load_optimizer, load_starts, load_scheduler)
 
-EPOCHS = 10
+EPOCHS = 100
 LEARNING_RATE = 1e-3
 ETA_MIN = 1e-6
 VERBOSE = 50

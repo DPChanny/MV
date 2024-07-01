@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 from torchvision.transforms.v2.functional import to_pil_image
 
 from img2vlc.Img2VlcDataset import Img2VlcDataset
-from configs import DATA_PATH, JSON_PATH
-from utils import visualize, DEVICE, get_tok2vlc
+from configs import DATA_PATH, JSON_PATH, DEVICE
+from utils import visualize, get_tok2flc
 from img2vlc.img2vlc_configs import IMG2VLC_VERSION, COORD_CONV_2D_VERSION
 from img2vlc.img2vlc_utils import get_model, collate_fn, load_model, load_checkpoint
 
@@ -25,7 +25,7 @@ json_list = random.sample([file
 dataset = Img2VlcDataset(DATA_PATH, json_list, DEVICE, False)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
-tok2vlc = get_tok2vlc()
+tok2vlc = get_tok2flc()
 
 prediction_list = []
 image_list = []

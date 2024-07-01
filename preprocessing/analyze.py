@@ -5,7 +5,7 @@ from PIL import Image
 from matplotlib.gridspec import GridSpec
 
 from configs import JSON_PATH, DATA_PATH, JPG_PATH
-from utils import json_parser, get_vlc2tok
+from utils import json_parser, get_flc2tok
 
 import matplotlib.pyplot as plt
 
@@ -53,7 +53,7 @@ with open("result.json", "r") as f:
 fig = plt.figure(figsize=(40, 20))
 gs = GridSpec(nrows=2, ncols=3)
 
-for vlc in get_vlc2tok().keys():
+for vlc in get_flc2tok().keys():
     if vlc not in result['vlc_count']:
         result['vlc_count'][vlc] = 0
 result['vlc_count'] = {k: v for (k, v) in sorted(result['vlc_count'].items(), key=lambda x: x[1], reverse=True)}

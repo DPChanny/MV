@@ -8,7 +8,7 @@ from torchvision.models.detection import (
 from img2vlc.CoordConv2d import CoordConv2d
 from img2vlc.img2vlc_configs import (ModelVersion, CoordConv2dVersion,
                                      MODEL_PATH, COORD_CONV_2D_VERSION, IMG2VLC_VERSION)
-from utils import get_vlc2tok
+from utils import get_flc2tok
 
 
 def collate_fn(batch):
@@ -75,7 +75,7 @@ def get_model(model_version, coord_conv_2d_version, device, log_model=True):
     else:
         model = fasterrcnn_resnet50_fpn_v2()
 
-    num_classes = len(get_vlc2tok()) + 1
+    num_classes = len(get_flc2tok()) + 1
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = faster_rcnn.FastRCNNPredictor(in_features, num_classes)
 

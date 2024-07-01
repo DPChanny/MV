@@ -6,8 +6,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from configs import JSON_PATH, JPG_PATH
-from utils import json_parser
-from img2vlc.img2vlc_utils import get_vlc2tok
+from utils import json_parser, get_flc2tok
 
 
 class Img2VlcDataset(Dataset):
@@ -20,7 +19,7 @@ class Img2VlcDataset(Dataset):
         if is_train:
             transforms.append(tt.RandomHorizontalFlip(0.5))
         self.transforms = tt.Compose(transforms)
-        self.vlc2tok = get_vlc2tok()
+        self.vlc2tok = get_flc2tok()
 
     def __len__(self):
         return len(self.json_list)
@@ -33,14 +32,12 @@ class Img2VlcDataset(Dataset):
 
         image = Image.open(os.path.join(self.data_path, JPG_PATH, data_name + ".jpg")).convert("RGB")
 
-        boxes = torch.tensor(boxes, device=self.device, dtype=torch.float32)
+        boxes = torch.tensor(boxes).to(self.device).type(torch.float32)
 
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
 
         target = {'boxes': boxes,
-                  'labels': torch.tensor([self.vlc2tok[i] for i in vlcs],
-                                         dtype=torch.int64,
-                                         device=self.device),
+                  'labels': torch.tensor([self.vlc2tok[i] for i in vlcs]).to(self.device).type(torch.int64),
                   'area': area,
                   'image_id': data_index}
 

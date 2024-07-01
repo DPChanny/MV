@@ -7,17 +7,17 @@ from torch import Tensor
 from torch.nn import Transformer
 from torch.nn.utils.rnn import pad_sequence
 
-from utils import get_flc2tok
-from vlc2flc.vlc2flc_configs import PAD_INDEX, SOS_INDEX, EOS_INDEX, MODEL_PATH
+from utils import get_flc2tok, SOS_INDEX, EOS_INDEX, PAD_INDEX
+from vlc2flc.vlc2flc_configs import MODEL_PATH
 
 
 class TargetPE(nn.Module):
     def __init__(self, emb_size: int, dropout: float, device, max_len: int = 500):
         super(TargetPE, self).__init__()
 
-        den = torch.exp(-torch.arange(0, emb_size, 2, device=device) * math.log(10000) / emb_size)
-        pos = torch.arange(0, max_len, device=device).reshape(max_len, 1)
-        pos_embedding = torch.zeros((max_len, emb_size), device=device)
+        den = torch.exp(-torch.arange(0, emb_size, 2).to(device) * math.log(10000) / emb_size)
+        pos = torch.arange(0, max_len).to(device).reshape(max_len, 1)
+        pos_embedding = torch.zeros((max_len, emb_size)).to(device)
         pos_embedding[:, 0::2] = torch.sin(pos * den)
         pos_embedding[:, 1::2] = torch.cos(pos * den)
         pos_embedding = pos_embedding.unsqueeze(-2)
@@ -34,12 +34,12 @@ class SourcePE(nn.Module):
         self.device = device
         super(SourcePE, self).__init__()
 
-        den = torch.exp(-torch.arange(0, emb_size / 4, device=device) * math.log(10000) / emb_size / 4)
+        den = torch.exp(-torch.arange(0, emb_size / 4).to(device) * math.log(10000) / emb_size / 4)
 
-        x_p = torch.arange(0, max_width + 1, device=device).reshape(max_width + 1, 1)
+        x_p = torch.arange(0, max_width + 1).to(device).reshape(max_width + 1, 1)
         x_pe = torch.sin(x_p * den)
 
-        y_p = torch.arange(0, max_height + 1, device=device).reshape(max_height + 1, 1)
+        y_p = torch.arange(0, max_height + 1).to(device).reshape(max_height + 1, 1)
         y_pe = torch.sin(y_p * den)
 
         self.register_buffer('x_pe', x_pe)
@@ -51,7 +51,7 @@ class SourcePE(nn.Module):
 
     def get_pe(self, src_boxes_list):
         pe = torch.zeros((len(src_boxes_list[0]), len(src_boxes_list), self.emb_size),
-                         device=self.device, requires_grad=False)
+                         requires_grad=False).to(self.device)
         for index, src_boxes in enumerate(src_boxes_list):
             for box_index, box in enumerate(src_boxes):
                 pe[box_index, index, 0::4] = self.x_pe[int(box[0])]
@@ -93,6 +93,7 @@ class Seq2SeqTransformer(nn.Module):
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
         self.src_pe = SourcePE(emb_size, max_width, max_height, dropout=dropout, device=device)
         self.tgt_pe = TargetPE(emb_size, dropout=dropout, device=device)
+        self.device = device
 
     def forward(self, src, src_boxes, tgt, src_mask, tgt_mask,
                 src_padding_mask, tgt_padding_mask):
@@ -108,9 +109,28 @@ class Seq2SeqTransformer(nn.Module):
     def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
         return self.transformer.decoder(self.tgt_pe(self.tgt_tok_emb(tgt)), memory, tgt_mask)
 
+    def translate(self, src, boxes):
+        src_mask = torch.zeros(len(src), len(src)).type(torch.bool).to(self.device)
+
+        memory = self.encode(src, boxes, src_mask)
+        result = torch.ones(1, 1).fill_(SOS_INDEX).type(torch.long).to(self.device)
+        while True:
+            result_mask = (generate_square_subsequent_mask(result.size(0), self.device).type(torch.bool))
+            out = self.decode(result, memory, result_mask).transpose(0, 1)
+            prob = self.generator(out[:, -1])
+            _, next_word = torch.max(prob, dim=1)
+
+            result = torch.cat([result,
+                                torch.ones(1, 1).type_as(src.data).fill_(next_word.item())], dim=0)
+
+            if next_word == EOS_INDEX:
+                break
+
+        return result
+
 
 def generate_square_subsequent_mask(sz, device):
-    mask = (torch.triu(torch.ones((sz, sz), device=device)) == 1).transpose(0, 1)
+    mask = (torch.triu(torch.ones((sz, sz)).to(device)) == 1).transpose(0, 1)
     mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
     return mask
 
@@ -120,7 +140,7 @@ def create_mask(src, tgt, device):
     tgt_seq_len = tgt.shape[0]
 
     tgt_mask = generate_square_subsequent_mask(tgt_seq_len, device)
-    src_mask = torch.zeros((src_seq_len, src_seq_len), device=device).type(torch.bool)
+    src_mask = torch.zeros((src_seq_len, src_seq_len)).to(device).type(torch.bool)
 
     src_padding_mask = (src == PAD_INDEX).transpose(0, 1)
     tgt_padding_mask = (tgt == PAD_INDEX).transpose(0, 1)
@@ -129,9 +149,9 @@ def create_mask(src, tgt, device):
 
 
 def tensor_transform(tokens, device):
-    return torch.cat((torch.tensor([SOS_INDEX], device=device),
-                      torch.tensor(tokens, device=device),
-                      torch.tensor([EOS_INDEX], device=device)))
+    return torch.cat((torch.tensor([SOS_INDEX]).to(device),
+                      torch.tensor(tokens).to(device),
+                      torch.tensor([EOS_INDEX]).to(device)))
 
 
 def get_padding_boxes(boxes_list, max_len):
@@ -191,8 +211,8 @@ def save_checkpoint(epoch, total_epoch, batch, total_batch, model, optimizer, sc
 
 
 def get_model(device, log_model=True):
-    model = Seq2SeqTransformer(128, 4, 10000, 10000, 4, 4,
-                               len(get_flc2tok()) + 4, len(get_flc2tok()) + 4, device=device)
+    model = Seq2SeqTransformer(128, 8, 10000, 10000, 6, 6,
+                               len(get_flc2tok()) + 1, len(get_flc2tok()) + 1, device=device)
 
     model.to(device)
 
