@@ -203,7 +203,7 @@ def save_checkpoint(epoch, total_epoch, batch, total_batch, model, optimizer, sc
 
 
 def get_model(device, log_model=True):
-    model = Seq2SeqTransformer(128, 8, 10000, 10000, 6, 6,
+    model = Seq2SeqTransformer(128, 8, 10000, 10000, 4, 4,
                                len(get_flc2tok()) + 1, len(get_flc2tok()) + 1, device=device)
 
     model.to(device)

@@ -13,9 +13,9 @@ from vlc2flc.vlc2flc_utils import (collate_fn, create_mask, load_checkpoint, sav
 EPOCHS = 100
 LEARNING_RATE = 1e-3
 ETA_MIN = 1e-6
-VERBOSE = 50
-BATCH_SIZE = 2000
-MINI_BATCH_SIZE = 20
+VERBOSE = 100
+BATCH_SIZE = 10000
+MINI_BATCH_SIZE = 10
 
 checkpoint = load_checkpoint(DEVICE)
 

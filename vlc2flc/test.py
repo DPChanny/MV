@@ -1,6 +1,7 @@
 import os
 import random
 
+import matplotlib
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
@@ -9,9 +10,11 @@ from utils import get_tok2flc
 from vlc2flc.Vlc2FlcDataset import Vlc2FlcDataset
 from vlc2flc.vlc2flc_utils import get_model, collate_fn, load_model, load_checkpoint
 
+matplotlib.rcParams["mathtext.fontset"] = "cm"
+
 
 def show(t1, t2):
-    fig = plt.figure(figsize=(6, 0.5))
+    fig = plt.figure(figsize=(10, 2))
     fig.text(
         x=0.3333,
         y=0.5,
