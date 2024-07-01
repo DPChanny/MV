@@ -34,16 +34,8 @@ class SourcePE(nn.Module):
         self.device = device
         super(SourcePE, self).__init__()
 
-        den = torch.exp(-torch.arange(0, emb_size / 4).to(device) * math.log(10000) / emb_size / 4)
-
-        x_p = torch.arange(0, max_width + 1).to(device).reshape(max_width + 1, 1)
-        x_pe = torch.sin(x_p * den)
-
-        y_p = torch.arange(0, max_height + 1).to(device).reshape(max_height + 1, 1)
-        y_pe = torch.sin(y_p * den)
-
-        self.register_buffer('x_pe', x_pe)
-        self.register_buffer('y_pe', y_pe)
+        self.max_width = max_width
+        self.max_height = max_height
 
         self.emb_size = emb_size
 
@@ -54,10 +46,10 @@ class SourcePE(nn.Module):
                          requires_grad=False).to(self.device)
         for index, src_boxes in enumerate(src_boxes_list):
             for box_index, box in enumerate(src_boxes):
-                pe[box_index, index, 0::4] = self.x_pe[int(box[0])]
-                pe[box_index, index, 1::4] = self.y_pe[int(box[1])]
-                pe[box_index, index, 2::4] = self.x_pe[int(box[2])]
-                pe[box_index, index, 3::4] = self.y_pe[int(box[3])]
+                pe[box_index, index, 0::4] = int(box[0])/self.max_width/10
+                pe[box_index, index, 1::4] = int(box[1])/self.max_height/10
+                pe[box_index, index, 2::4] = int(box[2])/self.max_width/10
+                pe[box_index, index, 3::4] = int(box[3])/self.max_height/10
 
         return pe
 
