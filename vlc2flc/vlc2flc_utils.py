@@ -46,10 +46,10 @@ class SourcePE(nn.Module):
                          requires_grad=False).to(self.device)
         for index, src_boxes in enumerate(src_boxes_list):
             for box_index, box in enumerate(src_boxes):
-                pe[box_index, index, 0::4] = int(box[0])/self.max_width/10
-                pe[box_index, index, 1::4] = int(box[1])/self.max_height/10
-                pe[box_index, index, 2::4] = int(box[2])/self.max_width/10
-                pe[box_index, index, 3::4] = int(box[3])/self.max_height/10
+                pe[box_index, index, 0::4] = box[0]/self.max_width/10
+                pe[box_index, index, 1::4] = box[1]/self.max_height/10
+                pe[box_index, index, 2::4] = box[2]/self.max_width/10
+                pe[box_index, index, 3::4] = box[3]/self.max_height/10
 
         return pe
 
@@ -71,7 +71,7 @@ class Seq2SeqTransformer(nn.Module):
     def __init__(self, emb_size, nhead, max_width, max_height,
                  num_encoder_layers, num_decoder_layers,
                  src_vocab_size, tgt_vocab_size, device,
-                 dim_feedforward=512, dropout=0.1):
+                 dim_feedforward=1024, dropout=0.1):
         super(Seq2SeqTransformer, self).__init__()
         self.transformer = Transformer(d_model=emb_size,
                                        nhead=nhead,
@@ -148,10 +148,10 @@ def tensor_transform(tokens, device):
 
 def get_padding_boxes(boxes_list, max_len):
     for index, boxes in enumerate(boxes_list):
-        boxes_list[index] = torch.cat((torch.zeros((1, 4)),
+        boxes_list[index] = torch.cat((torch.zeros((1, 4)).to(boxes.device),
                                        boxes,
-                                       torch.tensor([[10000, 10000, 10000, 10000]]),
-                                       torch.zeros((max_len - len(boxes), 4))))
+                                       torch.tensor([[10000, 10000, 10000, 10000]]).to(boxes.device),
+                                       torch.zeros((max_len - len(boxes), 4)).to(boxes.device)))
 
     return boxes_list
 
@@ -203,7 +203,7 @@ def save_checkpoint(epoch, total_epoch, batch, total_batch, model, optimizer, sc
 
 
 def get_model(device, log_model=True):
-    model = Seq2SeqTransformer(128, 8, 10000, 10000, 4, 4,
+    model = Seq2SeqTransformer(256, 8, 10000, 10000, 6, 6,
                                len(get_flc2tok()) + 1, len(get_flc2tok()) + 1, device=device)
 
     model.to(device)

@@ -10,19 +10,19 @@ from vlc2flc.Vlc2FlcDataset import Vlc2FlcDataset
 from vlc2flc.vlc2flc_utils import (collate_fn, create_mask, load_checkpoint, save_checkpoint,
                                    get_model, load_model, load_optimizer, load_starts, load_scheduler)
 
-EPOCHS = 100
+EPOCHS = 64
 LEARNING_RATE = 1e-3
 ETA_MIN = 1e-6
-VERBOSE = 100
-BATCH_SIZE = 10000
-MINI_BATCH_SIZE = 10
+VERBOSE = 32
+BATCH_SIZE = 8192
+MINI_BATCH_SIZE = 128
 
 checkpoint = load_checkpoint(DEVICE)
 
 model = load_model(get_model(DEVICE), checkpoint)
 model.train()
 
-optimizer = torch.optim.AdamW(params=model.parameters(), lr=LEARNING_RATE, weight_decay=1e-03)
+optimizer = torch.optim.AdamW(params=model.parameters(), lr=LEARNING_RATE, weight_decay=1e-04)
 optimizer = load_optimizer(optimizer, checkpoint)
 
 start_epoch, start_batch = load_starts(checkpoint)
