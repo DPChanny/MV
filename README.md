@@ -28,12 +28,16 @@
 
 ## 🧩 전체 파이프라인
 
-```mermaid
-graph TD;
-    A[수식 이미지] --> B[RCNN (Faster R-CNN + CoordConv2d)]
-    B --> C[VLC 시퀀스 (박스 + 토큰)]
-    C --> D[커스텀 Transformer (Seq2Seq)]
-    D --> E[FLC 시퀀스]
+```
+[수식 이미지]
+   ↓
+RCNN (Faster R-CNN + CoordConv2d)
+   ↓
+VLC 시퀀스 (박스 + 토큰)
+   ↓
+커스텀 Transformer (Seq2Seq)
+   ↓
+FLC 시퀀스
 ```
 
 ---
